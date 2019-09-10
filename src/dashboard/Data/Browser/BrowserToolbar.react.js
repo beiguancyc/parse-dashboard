@@ -7,6 +7,8 @@
  */
 import BrowserFilter  from 'components/BrowserFilter/BrowserFilter.react';
 import BrowserMenu    from 'components/BrowserMenu/BrowserMenu.react';
+import ColumnsConfiguration
+                      from 'components/ColumnsConfiguration/ColumnsConfiguration.react';
 import Icon           from 'components/Icon/Icon.react';
 import MenuItem       from 'components/BrowserMenu/MenuItem.react';
 import prettyNumber   from 'lib/prettyNumber';
@@ -22,7 +24,6 @@ let BrowserToolbar = ({
   count,
   perms,
   schema,
-  userPointers,
   filters,
   selection,
   relation,
@@ -42,6 +43,10 @@ let BrowserToolbar = ({
   onRefresh,
   hidePerms,
   isUnique,
+  uniqueField,
+  handleColumnDragDrop,
+  handleColumnsOrder,
+  order,
 
   enableDeleteAllRows,
   enableExportClass,
@@ -137,6 +142,25 @@ let BrowserToolbar = ({
     classes.push(styles.toolbarButtonDisabled);
     onClick = null;
   }
+
+  const userPointers = [];
+  const schemaSimplifiedData = {};
+  const classSchema = schema.data.get('classes').get(className);
+  if (classSchema) {
+    classSchema.forEach(({ type, targetClass }, col) => {
+      if (name === 'objectId' || isUnique && name !== uniqueField) {
+        return;
+      }
+      if (targetClass === '_User') {
+        userPointers.push(name);
+      }
+      schemaSimplifiedData[col] = {
+        type,
+        targetClass,
+      };
+    });
+  }
+
   return (
     <Toolbar
       relation={relation}
@@ -150,6 +174,11 @@ let BrowserToolbar = ({
         <span>Add Row</span>
       </a>
       <div className={styles.toolbarSeparator} />
+      <ColumnsConfiguration
+        handleColumnsOrder={handleColumnsOrder}
+        handleColumnDragDrop={handleColumnDragDrop}
+        order={order} />
+      <div className={styles.toolbarSeparator} />
       <a className={styles.toolbarButton} onClick={onRefresh}>
         <Icon name='refresh-solid' width={14} height={14} />
         <span>Refresh</span>
@@ -157,9 +186,10 @@ let BrowserToolbar = ({
       <div className={styles.toolbarSeparator} />
       <BrowserFilter
         setCurrent={setCurrent}
-        schema={schema}
+        schema={schemaSimplifiedData}
         filters={filters}
-        onChange={onFilterChange} />
+        onChange={onFilterChange}
+        className={className} />
       <div className={styles.toolbarSeparator} />
       {enableSecurityDialog ? <SecurityDialog
         setCurrent={setCurrent}

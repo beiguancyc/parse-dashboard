@@ -37,6 +37,9 @@ import { Helmet }                         from 'react-helmet';
 import PropTypes                          from 'lib/PropTypes';
 import ParseApp                           from 'lib/ParseApp';
 
+// The initial and max amount of rows fetched by lazy loading
+const MAX_ROWS_FETCHED = 200;
+
 export default
 @subscribeTo('Schema', 'schema')
 class Browser extends DashboardView {
@@ -258,12 +261,14 @@ class Browser extends DashboardView {
     });
   }
 
-  addColumn(type, name, target) {
+  addColumn({ type, name, target, required, defaultValue }) {
     let payload = {
       className: this.props.params.className,
       columnType: type,
       name: name,
-      targetClass: target
+      targetClass: target,
+      required,
+      defaultValue
     };
     this.props.schema.dispatch(ActionTypes.ADD_COLUMN, payload).finally(() => {
       this.setState({ showAddColumnDialog: false });
@@ -335,7 +340,7 @@ class Browser extends DashboardView {
       query.ascending(field)
     }
 
-    query.limit(200);
+    query.limit(MAX_ROWS_FETCHED);
 
     let promise = query.find({ useMasterKey: true });
     let isUnique = false;
@@ -372,7 +377,7 @@ class Browser extends DashboardView {
     } else {
       delete filteredCounts[source];
     }
-    this.setState({ data: data, filters, lastMax: 200 , filteredCounts: filteredCounts});
+    this.setState({ data: data, filters, lastMax: MAX_ROWS_FETCHED , filteredCounts: filteredCounts});
   }
 
   async fetchRelation(relation, filters = new List()) {
@@ -384,7 +389,7 @@ class Browser extends DashboardView {
       selection: {},
       data,
       filters,
-      lastMax: 200,
+      lastMax: MAX_ROWS_FETCHED,
     });
   }
 
@@ -427,14 +432,16 @@ class Browser extends DashboardView {
       query.lessThan('createdAt', this.state.data[this.state.data.length - 1].get('createdAt'));
     }
     query.addDescending('createdAt');
-    query.limit(200);
+    query.limit(MAX_ROWS_FETCHED);
 
     query.find({ useMasterKey: true }).then((nextPage) => {
       if (className === this.props.params.className) {
-        this.setState((state) => ({ data: state.data.concat(nextPage)}));
+        this.setState((state) => ({
+          data: state.data.concat(nextPage)
+        }));
       }
     });
-    this.setState({ lastMax: this.state.lastMax + 200 });
+    this.setState({ lastMax: this.state.lastMax + MAX_ROWS_FETCHED });
   }
 
   updateFilters(filters) {
@@ -585,7 +592,7 @@ class Browser extends DashboardView {
           this.state.counts[className] = 0;
           this.setState({
             data: [],
-            lastMax: 200,
+            lastMax: MAX_ROWS_FETCHED,
             selection: {},
           });
         }
@@ -638,7 +645,14 @@ class Browser extends DashboardView {
               this.state.data.splice(indexes[i] - i, 1);
             }
             this.state.counts[className] -= indexes.length;
-            this.forceUpdate();
+
+            // If after deletion, the remaining elements on the table is lesser than the maximum allowed elements
+            // we fetch more data to fill the table
+            if (this.state.data.length < MAX_ROWS_FETCHED) {
+              this.prefetchData(this.props, this.context);
+            } else {
+              this.forceUpdate();
+            }
           }
         }, (error) => {
           let errorDeletingNote = null;
@@ -667,9 +681,6 @@ class Browser extends DashboardView {
 
   selectRow(id, checked) {
     this.setState(({ selection }) => {
-      if (id === '*') {
-        return { selection: checked ? { '*': true } : {} };
-      }
       if (checked) {
         selection[id] = true;
       } else {
@@ -899,13 +910,6 @@ class Browser extends DashboardView {
           </div>
         );
       } else if (className && classes.get(className)) {
-        let schema = {};
-        classes.get(className).forEach(({ type, targetClass }, col) => {
-          schema[col] = {
-            type,
-            targetClass,
-          };
-        });
 
         let columns = {
           objectId: { type: 'String' }
@@ -913,20 +917,13 @@ class Browser extends DashboardView {
         if (this.state.isUnique) {
           columns = {};
         }
-        let userPointers = [];
-        classes.get(className).forEach((field, name) => {
-          if (name === 'objectId') {
+        classes.get(className).forEach(({ type, targetClass }, name) => {
+          if (name === 'objectId' || this.state.isUnique && name !== this.state.uniqueField) {
             return;
           }
-          if (this.state.isUnique && name !== this.state.uniqueField) {
-            return;
-          }
-          let info = { type: field.type };
-          if (field.targetClass) {
-            info.targetClass = field.targetClass;
-            if (field.targetClass === '_User') {
-              userPointers.push(name);
-            }
+          const info = { type };
+          if (targetClass) {
+            info.targetClass = targetClass;
           }
           columns[name] = info;
         });
@@ -947,8 +944,7 @@ class Browser extends DashboardView {
             uniqueField={this.state.uniqueField}
             count={count}
             perms={this.state.clp[className]}
-            schema={schema}
-            userPointers={userPointers}
+            schema={this.props.schema}
             filters={this.state.filters}
             onFilterChange={this.updateFilters}
             onRemoveColumn={this.showRemoveColumn}
@@ -991,6 +987,7 @@ class Browser extends DashboardView {
           onConfirm={this.createClass} />
       );
     } else if (this.state.showAddColumnDialog) {
+      const { currentApp = {} } = this.context;
       let currentColumns = [];
       classes.get(className).forEach((field, name) => {
         currentColumns.push(name);
@@ -1000,7 +997,8 @@ class Browser extends DashboardView {
           currentColumns={currentColumns}
           classes={this.props.schema.data.get('classes').keySeq().toArray()}
           onCancel={() => this.setState({ showAddColumnDialog: false })}
-          onConfirm={this.addColumn} />
+          onConfirm={this.addColumn}
+          parseServerVersion={currentApp.serverInfo && currentApp.serverInfo.parseServerVersion} />
       );
     } else if (this.state.showRemoveColumnDialog) {
       let currentColumns = this.getClassColumns(className).map(column => column.name);
