@@ -21,7 +21,7 @@
   ],
   "homepage": "https://github.com/ParsePlatform/parse-dashboard",
   "bugs": "https://github.com/ParsePlatform/parse-dashboard/issues",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/ParsePlatform/parse-dashboard"
@@ -34,13 +34,14 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@babel/runtime": "7.5.5",
+    "@babel/runtime": "7.6.0",
     "bcryptjs": "2.3.0",
     "body-parser": "1.19.0",
     "codemirror-graphql": "github:timsuchanek/codemirror-graphql#details-fix",
     "commander": "3.0.1",
     "connect-flash": "0.1.1",
     "cookie-session": "2.0.0-beta.3",
+    "copy-to-clipboard": "^3.2.0",
     "create-react-class": "15.6.3",
     "csurf": "1.10.0",
     "express": "4.17.1",
@@ -52,7 +53,7 @@
     "js-beautify": "1.10.2",
     "json-file-plus": "3.2.0",
     "package-json": "6.5.0",
-    "parse": "2.7.0",
+    "parse": "2.7.1",
     "passport": "0.4.0",
     "passport-local": "1.0.0",
     "prismjs": "1.17.0",
@@ -70,11 +71,11 @@
     "semver": "^6.3.0"
   },
   "devDependencies": {
-    "@babel/core": "7.5.5",
-    "@babel/plugin-proposal-decorators": "7.4.4",
+    "@babel/core": "7.6.0",
+    "@babel/plugin-proposal-decorators": "7.6.0",
     "@babel/plugin-transform-regenerator": "7.4.5",
-    "@babel/plugin-transform-runtime": "7.5.5",
-    "@babel/preset-env": "7.5.5",
+    "@babel/plugin-transform-runtime": "7.6.0",
+    "@babel/preset-env": "7.6.0",
     "@babel/preset-react": "7.0.0",
     "babel-eslint": "10.0.3",
     "babel-loader": "8.0.6",
@@ -83,7 +84,7 @@
     "cross-env": "5.2.1",
     "css-loader": "3.2.0",
     "eslint": "6.3.0",
-    "eslint-plugin-jest": "22.16.0",
+    "eslint-plugin-jest": "22.17.0",
     "eslint-plugin-react": "7.14.3",
     "file-loader": "4.2.0",
     "http-server": "0.11.1",
@@ -101,7 +102,7 @@
     "style-loader": "1.0.0",
     "svg-prep": "1.0.4",
     "webpack": "4.39.3",
-    "webpack-cli": "3.3.7"
+    "webpack-cli": "3.3.8"
   },
   "scripts": {
     "dev": "node ./Parse-Dashboard/index.js & webpack --config webpack/build.config.js --devtool eval-source-map --progress --watch",
