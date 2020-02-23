@@ -243,13 +243,13 @@ export default class JobsForm extends DashboardView {
             pieces.push(
               <strong>every day</strong>,
               ' at ',
-              <strong>{fields.repeatStartHour}:{fields.repeatStartMinute} UTC</strong>
+              <strong>{fields.repeatStartHour}:{fields.repeatStartMinute} </strong>
             );
           } else {
             pieces.push(
               <strong>{'every ' + pluralize(fields.intervalCount, fields.intervalUnit)}</strong>,
               ' after ',
-              <strong>{fields.repeatStartHour}:{fields.repeatStartMinute} UTC</strong>
+              <strong>{fields.repeatStartHour}:{fields.repeatStartMinute} </strong>
             );
           }
         }

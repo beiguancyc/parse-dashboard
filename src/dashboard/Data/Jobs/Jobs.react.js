@@ -54,8 +54,8 @@ function scheduleString(data) {
     schedule = 'On ';
   }
   let runAt = new Date(data.startAfter);
-  schedule += runAt.getUTCMonth() + '/' + runAt.getUTCDate() + '/' + String(runAt.getUTCFullYear()).substr(2);
-  schedule += ' at ' + (runAt.getUTCHours() < 10 ? '0' : '') + runAt.getUTCHours() + ':' + (runAt.getUTCMinutes() < 10 ? '0' : '') + runAt.getUTCMinutes() + '.';
+  schedule += runAt.getMonth() + '/' + runAt.getDate() + '/' + String(runAt.getFullYear()).substr(2);
+  schedule += ' at ' + (runAt.getHours() < 10 ? '0' : '') + runAt.getHours() + ':' + (runAt.getMinutes() < 10 ? '0' : '') + runAt.getMinutes() + '.';
   return <div style={{ fontSize: 12, whiteSpace: 'normal', lineHeight: '16px' }}>{schedule}</div>;
 }
 
@@ -169,13 +169,13 @@ class Jobs extends TableView {
       return [
         <TableHeader key='name' width={20}>Name</TableHeader>,
         <TableHeader key='func' width={20}>Function</TableHeader>,
-        <TableHeader key='schedule' width={20}>Schedule (UTC)</TableHeader>,
+        <TableHeader key='schedule' width={20}>Schedule</TableHeader>,
         <TableHeader key='actions' width={40}>Actions</TableHeader>,
       ];
     } else {
       return [
         <TableHeader key='func' width={20}>Function</TableHeader>,
-        <TableHeader key='started' width={20}>Started At (UTC)</TableHeader>,
+        <TableHeader key='started' width={20}>Started At </TableHeader>,
         <TableHeader key='message' width={40}>Message</TableHeader>,
         <TableHeader key='status' width={20}>Status</TableHeader>,
       ];
