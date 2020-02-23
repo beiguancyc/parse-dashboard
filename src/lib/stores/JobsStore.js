@@ -37,7 +37,7 @@ function JobsStore(state, action) {
       return Parse._request('POST', path, action.schedule, {useMasterKey: true}).then((result) => {
         let { ...schedule } = action.schedule.job_schedule;
         schedule.objectId = result.objectId;
-        schedule.startAfter = schedule.startAfter || new Date().toISOString();
+        schedule.startAfter = schedule.startAfter || new Date().toLocaleDateString();
         return state.set('jobs', state.get('jobs').push(schedule));
       });
     case ActionTypes.EDIT:

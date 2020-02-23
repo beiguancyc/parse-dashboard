@@ -25,6 +25,7 @@ import subscribeTo            from 'lib/subscribeTo';
 import TableHeader            from 'components/Table/TableHeader.react';
 import TableView              from 'dashboard/TableView.react';
 import Toolbar                from 'components/Toolbar/Toolbar.react';
+import {string} from "prop-types";
 
 let subsections = {
   all: 'All Jobs',
@@ -48,7 +49,12 @@ function scheduleString(data) {
     } else {
       schedule += 'Each day, every ' + data.repeatMinutes + ' minutes, ';
     }
-    schedule += 'after ' + data.timeOfDay.substr(0, 5) + ', ';
+    let times = data.timeOfDay.split(':')
+    let hour=times[0]
+    hour=parseInt(hour)+8
+    let timeOfDay=hour+":"+times[1]
+    //schedule += 'after ' + data.timeOfDay.substr(0, 5) + ', ';
+    schedule += 'after ' + timeOfDay + ', ';
     schedule += 'starting ';
   } else {
     schedule = 'On ';
