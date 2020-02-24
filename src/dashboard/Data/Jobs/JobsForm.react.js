@@ -187,6 +187,7 @@ export default class JobsForm extends DashboardView {
             label={<Label text='When should it start?' />}
             input={
               <DateTimeInput
+                local={true}
                 disabled={!!this.props.initialFields.job}
                 value={fields.runAt}
                 onChange={setField.bind(null, 'runAt')} />
