@@ -40,6 +40,12 @@ export default class JobsForm extends DashboardView {
       }
       if (!this.props.initialFields.repeatStartHour) {
         changes.repeatStartHour = '12';
+      }else{
+        if(parseInt(this.props.initialFields.repeatStartHour)>15){
+          changes.repeatStartHour=(parseInt(this.props.initialFields.repeatStartHour)+8-24).toString()
+        }else{
+          this.props.initialFields.repeatStartHour=(parseInt(this.props.initialFields.repeatStartHour)+8).toString()
+        }
       }
       if (!this.props.initialFields.repeatStartMinute) {
         changes.repeatStartHour = '00';

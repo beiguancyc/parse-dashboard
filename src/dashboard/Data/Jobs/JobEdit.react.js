@@ -5,7 +5,7 @@
  * This source code is licensed under the license found in the LICENSE file in
  * the root directory of this source tree.
  */
-import PropTypes       from 'lib/PropTypes'; 
+import PropTypes       from 'lib/PropTypes';
 import { ActionTypes } from 'lib/stores/JobsStore';
 import history         from 'dashboard/history';
 import JobsForm        from 'dashboard/Data/Jobs/JobsForm.react';
@@ -37,10 +37,16 @@ class JobEdit extends React.Component {
     }
     if (changes.repeat) {
       let hour = changes.repeatStartHour;
-      if (hour.length < 2) {
-        hour = '0' + hour;
+      var subHour=0
+      if(hour<8){
+        subHour=hour-8+24
+      }else{
+        subHour=hour-8
       }
-      schedule.job_schedule.timeOfDay = `${hour}:${changes.repeatStartMinute}:00.000Z`;
+      if (subHour.length < 2) {
+        subHour = '0' + hour;
+      }
+      schedule.job_schedule.timeOfDay = `${subHour}:${changes.repeatStartMinute}:00.000Z`;
       let interval = 0;
       if (changes.repeatType === 'daily') {
         interval = 1440;
