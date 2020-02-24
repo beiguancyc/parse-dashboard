@@ -33,7 +33,7 @@ class JobEdit extends React.Component {
       schedule.job_schedule.jobName = changes.job;
     }
     if (!changes.immediate && changes.runAt) {
-      schedule.job_schedule.startAfter = changes.runAt.toLocaleDateString();
+      schedule.job_schedule.startAfter = changes.runAt.toISOString();
     }
     if (changes.repeat) {
       let hour = changes.repeatStartHour;
