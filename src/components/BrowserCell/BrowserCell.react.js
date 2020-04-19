@@ -5,6 +5,8 @@
  * This source code is licensed under the license found in the LICENSE file in
  * the root directory of this source tree.
  */
+import * as Filters              from 'lib/Filters';
+import { List, Map }             from 'immutable';
 import { dateStringUTC }         from 'lib/DateUtils';
 import getFileName               from 'lib/getFileName';
 import Parse                     from 'parse';
@@ -24,10 +26,12 @@ export default class BrowserCell extends Component {
   componentDidUpdate() {
     if (this.props.current) {
       const node = this.cellRef.current;
+      const { setRelation } = this.props;
       const { left, right, bottom, top } = node.getBoundingClientRect();
 
       // Takes into consideration Sidebar width when over 980px wide.
-      const leftBoundary = window.innerWidth > 980 ? 300 : 0;
+      // If setRelation is undefined, DataBrowser is used as ObjectPicker, so it does not have a sidebar.
+      const leftBoundary = window.innerWidth > 980 && setRelation ? 300 : 0;
 
       // BrowserToolbar + DataBrowserHeader height
       const topBoundary = 126;
@@ -62,8 +66,144 @@ export default class BrowserCell extends Component {
     return isRefDifferent;
   }
 
+  //#region Cell Context Menu related methods
+
+  onContextMenu(event) {
+    if (event.type !== 'contextmenu') { return; }
+    event.preventDefault();
+
+    const { field, hidden, onSelect, setCopyableValue, setContextMenu, row, col } = this.props;
+
+    onSelect({ row, col });
+    setCopyableValue(hidden ? undefined : this.copyableValue);
+
+    const available = Filters.availableFilters(this.props.simplifiedSchema, this.props.filters, Filters.BLACKLISTED_FILTERS);
+    const constraints = available && available[field];
+
+    const { pageX, pageY } = event;
+    const menuItems = this.getContextMenuOptions(constraints);
+    menuItems.length && setContextMenu(pageX, pageY, menuItems);
+  }
+
+  getContextMenuOptions(constraints) {
+    let { onEditSelectedRow } = this.props;
+    const contextMenuOptions = [];
+
+    const setFilterContextMenuOption = this.getSetFilterContextMenuOption(constraints);
+    setFilterContextMenuOption && contextMenuOptions.push(setFilterContextMenuOption);
+
+    const addFilterContextMenuOption = this.getAddFilterContextMenuOption(constraints);
+    addFilterContextMenuOption && contextMenuOptions.push(addFilterContextMenuOption);
+
+    const relatedObjectsContextMenuOption = this.getRelatedObjectsContextMenuOption();
+    relatedObjectsContextMenuOption && contextMenuOptions.push(relatedObjectsContextMenuOption);
+
+    onEditSelectedRow && contextMenuOptions.push({
+      text: 'Edit row',
+      callback: () => {
+        let { objectId, onEditSelectedRow } = this.props;
+        onEditSelectedRow(true, objectId);
+      }
+    });
+
+    return contextMenuOptions;
+  }
+
+  getSetFilterContextMenuOption(constraints) {
+    if (constraints) {
+      return {
+        text: 'Set filter...', items: constraints.map(constraint => {
+          const definition = Filters.Constraints[constraint];
+          const text = `${this.props.field} ${definition.name}${definition.comparable ? (' ' + this.copyableValue) : ''}`;
+          return {
+            text,
+            callback: this.pickFilter.bind(this, constraint)
+          };
+        })
+      };
+    }
+  }
+
+  getAddFilterContextMenuOption(constraints) {
+    if (constraints && this.props.filters && this.props.filters.size > 0) {
+      return {
+        text: 'Add filter...', items: constraints.map(constraint => {
+          const definition = Filters.Constraints[constraint];
+          const text = `${this.props.field} ${definition.name}${definition.comparable ? (' ' + this.copyableValue) : ''}`;
+          return {
+            text,
+            callback: this.pickFilter.bind(this, constraint, true)
+          };
+        })
+      };
+    }
+  }
+
+  /**
+   * Returns "Get related records from..." context menu item if cell holds a Pointer
+   * or objectId and there's a class in relation.
+   */
+  getRelatedObjectsContextMenuOption() {
+    const { value, schema, onPointerClick } = this.props;
+
+    const pointerClassName = (value && value.className)
+      || (this.props.field === 'objectId' && this.props.className);
+    if (pointerClassName) {
+      const relatedRecordsMenuItem = { text: 'Get related records from...', items: [] };
+      schema.data.get('classes').sortBy((v, k) => k).forEach((cl, className) => {
+        cl.forEach((column, field) => {
+          if (column.targetClass !== pointerClassName) { return; }
+          relatedRecordsMenuItem.items.push({
+            text: className, callback: () => {
+              let relatedObject = value;
+              if (this.props.field === 'objectId') {
+                relatedObject = new Parse.Object(pointerClassName);
+                relatedObject.id = value;
+              }
+              onPointerClick({ className, id: relatedObject.toPointer(), field })
+            }
+          })
+        });
+      });
+
+      return relatedRecordsMenuItem.items.length ? relatedRecordsMenuItem : undefined;
+    }
+  }
+
+  pickFilter(constraint, addToExistingFilter) {
+    const definition = Filters.Constraints[constraint];
+    const { filters, type, value, field } = this.props;
+    const newFilters = addToExistingFilter ? filters : new List();
+    let compareTo;
+    if (definition.comparable) {
+      switch (type) {
+        case 'Pointer':
+          compareTo = value.toPointer()
+          break;
+        case 'Date':
+          compareTo = value.__type ? value : {
+            __type: 'Date',
+            iso: value
+          };
+          break;
+
+        default:
+          compareTo = value;
+          break;
+      }
+    }
+
+    this.props.onFilterChange(newFilters.push(new Map({
+      field,
+      constraint,
+      compareTo
+    })));
+  }
+
+  //#endregion
+
   render() {
-    let { type, value, hidden, width, current, onSelect, onEditChange, setCopyableValue, setRelation, onPointerClick, row, col } = this.props;
+    let { type, value, hidden, width, current, onSelect, onEditChange, setCopyableValue, setRelation, onPointerClick, row, col, field, onEditSelectedRow } = this.props;
     let content = value;
     this.copyableValue = content;
     let classes = [styles.cell, unselectable];
@@ -89,11 +229,13 @@ export default class BrowserCell extends Component {
         object.id = value.objectId;
         value = object;
       }
-      content = (
+      content = onPointerClick ? (
         <a href='javascript:;' onClick={onPointerClick.bind(undefined, value)}>
           <Pill value={value.id} />
         </a>
-      );
+      ) : (
+          value.id
+        );
       this.copyableValue = value.id;
     } else if (type === 'Date') {
       if (typeof value === 'object' && value.__type) {
@@ -136,14 +278,16 @@ export default class BrowserCell extends Component {
     } else if (type === 'Polygon') {
       this.copyableValue = content = value.coordinates.map(coord => `(${coord})`)
     } else if (type === 'Relation') {
-      content = (
+      content = setRelation ? (
         <div style={{ textAlign: 'center', cursor: 'pointer' }}>
           <Pill onClick={() => setRelation(value)} value='View relation' />
         </div>
-      );
+      ) : (
+          'Relation'
+        );
       this.copyableValue = undefined;
     }
-  
+
     if (current) {
       classes.push(styles.current);
     }
@@ -157,7 +301,10 @@ export default class BrowserCell extends Component {
           setCopyableValue(hidden ? undefined : this.copyableValue);
         }}
         onDoubleClick={() => {
-          if (type !== 'Relation') {
+          // Since objectId can't be edited, double click event opens edit row dialog
+          if (field === 'objectId' && onEditSelectedRow) {
+            onEditSelectedRow(true, value);
+          } else if (type !== 'Relation') {
             onEditChange(true)
           }
         }}
@@ -169,7 +316,9 @@ export default class BrowserCell extends Component {
             }
             onEditChange(true);
           }
-        }}>
+        }}
+        onContextMenu={this.onContextMenu.bind(this)}
+      >
         {content}
       </span>
     );
