@@ -26,6 +26,7 @@ import TableHeader            from 'components/Table/TableHeader.react';
 import TableView              from 'dashboard/TableView.react';
 import Toolbar                from 'components/Toolbar/Toolbar.react';
 import {string} from "prop-types";
+import generatePath from 'lib/generatePath';
 
 let subsections = {
   all: 'All Jobs',
@@ -97,18 +98,18 @@ class Jobs extends TableView {
   }
 
   navigateToNew() {
-    history.push(this.context.generatePath('jobs/new'));
+    history.push(generatePath(this.context, 'jobs/new'));
   }
 
   navigateToJob(jobId) {
-    history.push(this.context.generatePath(`jobs/edit/${jobId}`))
+    history.push(generatePath(this.context, `jobs/edit/${jobId}`))
   }
 
   loadData() {
     this.props.jobs.dispatch(ActionTypes.FETCH).finally(() => {
       this.setState({ loading: false });
     });
-    this.context.currentApp.getJobStatus().then((status) => {
+    this.context.getJobStatus().then((status) => {
       this.setState({ jobStatus: status });
     });
   }

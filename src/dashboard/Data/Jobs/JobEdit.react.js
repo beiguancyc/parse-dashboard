@@ -9,15 +9,14 @@ import PropTypes       from 'lib/PropTypes';
 import { ActionTypes } from 'lib/stores/JobsStore';
 import history         from 'dashboard/history';
 import JobsForm        from 'dashboard/Data/Jobs/JobsForm.react';
-import ParseApp        from 'lib/ParseApp';
 import React           from 'react';
 import subscribeTo     from 'lib/subscribeTo';
+import generatePath    from 'lib/generatePath';
+import { CurrentApp }  from 'context/currentApp';
 
 @subscribeTo('Jobs', 'jobs')
 class JobEdit extends React.Component {
-  constructor(props, context) {
-    super(props, context);
-  }
+  static contextType = CurrentApp;
 
   submitForm(changes) {
     let schedule = {
@@ -59,7 +58,7 @@ class JobEdit extends React.Component {
     let promise = this.props.params.jobId ?
       this.props.jobs.dispatch(ActionTypes.EDIT, { jobId: this.props.params.jobId, updates: schedule }) :
       this.props.jobs.dispatch(ActionTypes.CREATE, { schedule });
-    promise.then(() => {history.push(this.context.generatePath('jobs/scheduled'))});
+    promise.then(() => {history.push(generatePath(this.context, 'jobs/scheduled'))});
     return promise;
   }
 
@@ -124,10 +123,5 @@ class JobEdit extends React.Component {
     );
   }
 }
-
-JobEdit.original.contextTypes = {
-  currentApp: PropTypes.instanceOf(ParseApp),
-  generatePath: PropTypes.func,
-};
 
 export default JobEdit;
