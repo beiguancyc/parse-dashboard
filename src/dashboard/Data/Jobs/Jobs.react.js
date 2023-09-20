@@ -262,7 +262,7 @@ class Jobs extends TableView {
         }
       }
       if (data) {
-        data = data.map((jobName) => {
+        data = data.sort().map((jobName) => {
           return { jobName };
         });
       }
