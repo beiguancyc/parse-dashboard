@@ -68,7 +68,8 @@ export default class BrowserCell extends Component {
         this.props.appId,
         this.props.value.className
       );
-      let dataValue = this.props.value.id;
+      let value = this.props.value;
+      let dataValue = this.props.value.id || this.props.value.objectId;
       if (defaultPointerKey !== 'objectId') {
         dataValue = this.props.value.get(defaultPointerKey);
         if (dataValue && typeof dataValue === 'object') {
@@ -94,13 +95,13 @@ export default class BrowserCell extends Component {
       if (this.props.value && this.props.value.__type) {
         const object = new Parse.Object(this.props.value.className);
         object.id = this.props.value.objectId;
-        this.props.value = object;
+        value = object;
       }
 
       content = this.props.onPointerClick ? (
         <Pill
           value={dataValue}
-          onClick={this.props.onPointerClick.bind(undefined, this.props.value)}
+          onClick={this.props.onPointerClick.bind(undefined, value)}
           followClick={true}
           shrinkablePill
         />
@@ -136,7 +137,7 @@ export default class BrowserCell extends Component {
         this.copyableValue = content = (
           <ul>
             {array.map(a => (
-              <li>{a}</li>
+              <li key={a}>{a}</li>
             ))}
           </ul>
         );
@@ -294,7 +295,7 @@ export default class BrowserCell extends Component {
       this.props.setShowAggregatedData(true);
       this.props.setSelectedObjectId(this.props.objectId);
       if (this.props.isPanelVisible) {
-        this.props.callCloudFunction(this.props.objectId, this.props.className);
+        this.props.callCloudFunction(this.props.objectId, this.props.className, this.props.appId);
       }
     }
 
@@ -577,7 +578,7 @@ export default class BrowserCell extends Component {
       markRequiredFieldRow,
       handleCellClick,
       selectedCells,
-      setShowAggregatedData
+      setShowAggregatedData,
     } = this.props;
 
     const classes = [...this.state.classes];
@@ -649,7 +650,7 @@ export default class BrowserCell extends Component {
                 isPanelVisible &&
                 ((e.shiftKey && !this.props.firstSelectedCell) || !e.shiftKey)
               ) {
-                callCloudFunction(this.props.objectId, this.props.className);
+                callCloudFunction(this.props.objectId, this.props.className, this.props.appId);
               }
             }
             handleCellClick(e, row, col);

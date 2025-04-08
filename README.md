@@ -3,15 +3,13 @@
 ---
 
 [![Build Status](https://github.com/parse-community/parse-dashboard/workflows/ci/badge.svg?branch=alpha)](https://github.com/parse-community/parse-dashboard/actions?query=workflow%3Aci+branch%3Aalpha)
-[![Build Status](https://github.com/parse-community/parse-dashboard/workflows/ci/badge.svg?branch=beta)](https://github.com/parse-community/parse-dashboard/actions?query=workflow%3Aci+branch%3Abeta)
 [![Build Status](https://github.com/parse-community/parse-dashboard/workflows/ci/badge.svg?branch=release)](https://github.com/parse-community/parse-dashboard/actions?query=workflow%3Aci+branch%3Arelease)
 [![Snyk Badge](https://snyk.io/test/github/parse-community/parse-dashboard/badge.svg)](https://snyk.io/test/github/parse-community/parse-dashboard)
 
-[![Node Version](https://img.shields.io/badge/nodejs-18,_20-green.svg?logo=node.js&style=flat)](https://nodejs.org/)
+[![Node Version](https://img.shields.io/badge/nodejs-18,_20,_22-green.svg?logo=node.js&style=flat)](https://nodejs.org/)
 [![auto-release](https://img.shields.io/badge/%F0%9F%9A%80-auto--release-9e34eb.svg)](https://github.com/parse-community/parse-dashboard/releases)
 
 [![npm latest version](https://img.shields.io/npm/v/parse-dashboard/latest.svg)](https://www.npmjs.com/package/parse-dashboard)
-[![npm beta version](https://img.shields.io/npm/v/parse-dashboard/beta.svg)](https://www.npmjs.com/package/parse-dashboard)
 [![npm alpha version](https://img.shields.io/npm/v/parse-dashboard/alpha.svg)](https://www.npmjs.com/package/parse-dashboard)
 
 [![Backers on Open Collective](https://opencollective.com/parse-server/backers/badge.svg)][open-collective-link]
@@ -71,6 +69,7 @@ Parse Dashboard is a standalone dashboard for managing your [Parse Server](https
       - [Video Item](#video-item)
       - [Audio Item](#audio-item)
       - [Button Item](#button-item)
+      - [Panel Item](#panel-item)
   - [Browse as User](#browse-as-user)
   - [Change Pointer Key](#change-pointer-key)
     - [Limitations](#limitations)
@@ -130,6 +129,11 @@ Parse Dashboard is continuously tested with the most recent releases of Node.js 
 | Parameter                              | Type                | Optional | Default | Example              | Description                                                                                                                                 |
 |----------------------------------------|---------------------|----------|---------|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
 | `apps`                                 | Array&lt;Object&gt; | no       | -       | `[{ ... }, { ... }]` | The apps that are configured for the dashboard.                                                                                             |
+| `apps.appId`                           | String                        | yes          | -           | `"myAppId"`            | The Application ID for your Parse Server instance.                                                                                          |
+| `apps.masterKey`                       | String \| Function         | yes          | -           | `"exampleMasterKey"`, `() => "exampleMasterKey"` | The master key for full access to Parse Server. It can be provided directly as a String or as a Function returning a String.        |
+| `apps.masterKeyTtl`                    | Number                        | no           | -           | `3600`                  | Time-to-live (TTL) for the master key in seconds. This defines how long the master key is cached before the `masterKey` function is re-triggered.                |
+| `apps.serverURL`                       | String                        | yes          | -           | `"http://localhost:1337/parse"` | The URL where your Parse Server is running.                                                                                                 |
+| `apps.appName`                         | String                        | no           | -           | `"MyApp"`              | The display name of the app in the dashboard.                                                                                               |
 | `infoPanel`                            | Array&lt;Object&gt; | yes      | -       | `[{ ... }, { ... }]` | The [info panel](#info-panel) configuration.                                                                                                |
 | `infoPanel[*].title`                   | String              | no       | -       | `User Details`       | The panel title.                                                                                                                            |
 | `infoPanel[*].classes`                 | Array&lt;String&gt; | no       | -       | `["_User"]`          | The classes for which the info panel should be displayed.                                                                                   |
@@ -929,12 +933,13 @@ Example:
 
 A text item that consists of a key and a value. The value can optionally be linked to a URL.
 
-| Parameter | Value  | Optional | Description                                                                       |
-|-----------|--------|----------|-----------------------------------------------------------------------------------|
-| `type`    | String | No       | Must be `"keyValue"`.                                                             |
-| `key`     | String | No       | The key text to display.                                                          |
-| `value`   | String | No       | The value text to display.                                                        |
-| `url`     | String | Yes      | The URL that will be opened in a new browser tab when clicking on the value text. |
+| Parameter       | Value   | Default     | Optional | Description                                                                                                                                                                                             |
+|-----------------|---------|-------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `type`          | String  | -           | No       | Must be `"keyValue"`.                                                                                                                                                                                   |
+| `key`           | String  | -           | No       | The key text to display.                                                                                                                                                                                |
+| `value`         | String  | -           | No       | The value text to display.                                                                                                                                                                              |
+| `url`           | String  | `undefined` | Yes      | The URL that will be opened in a new browser tab when clicking on the value text. It can be set to an absolute URL or a relative URL in which case the base URL is `<PROTOCOL>://<HOST>/<MOUNT_PATH>/`. |
+| `isRelativeUrl` | Boolean | `false`     | Yes      | Set this to `true` when linking to another dashboard page, in which case the base URL for the relative URL will be `<PROTOCOL>://<HOST>/<MOUNT_PATH>/apps/<APP_NAME>/`.                                 |
 
 Examples:
 
@@ -951,7 +956,33 @@ Examples:
   "type": "keyValue",
   "key": "Last purchase ID",
   "value": "123",
-  "url": "https://example.com/purchaseDetails?purchaseId=012345"
+  "url": "https://example.com/purchaseDetails?purchaseId=123"
+}
+```
+
+```json
+{
+  "type": "keyValue",
+  "key": "Purchase",
+  "value": "123",
+  "url": "browser/Purchase",
+  "isRelativeUrl": true
+}
+```
+
+To navigate to a specific object using a relative URL, the query parameters must be URL encoded:
+
+```js
+const objectId = 'abc123';
+const className = 'Purchase';
+const query = [{ field: 'objectId', constraint: 'eq', compareTo: objectId }];
+const url = `browser/Purchase?filters=${JSON.stringify(query)}`;
+const item = {
+  type: 'keyValue',
+  key: 'Purchase',
+  value: objectId,
+  url,
+  isRelativeUrl: true
 }
 ```
 
@@ -1079,6 +1110,26 @@ Example:
       "key": "value"
     }
   }
+}
+```
+
+#### Panel Item
+
+A sub-panel whose data is loaded on-demand by expanding the item.
+
+| Parameter           | Value  | Optional | Description                                                                                                                                       |
+|---------------------|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| `type`              | String | No       | Must be `"infoPanel"`.                                                                                                                            |
+| `title`             | String | No       | The title to display in the expandable headline.                                                                                                  |
+| `cloudCodeFunction` | String | No       | The Cloud Code Function to call which receives the selected object in the data browser and returns the response to be displayed in the sub-panel. |
+
+Example:
+
+```json
+{
+  "type": "panel",
+  "title": "Purchase History",
+  "cloudCodeFunction": "getUserPurchaseHistory"
 }
 ```
 

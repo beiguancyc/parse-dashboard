@@ -41,7 +41,6 @@ import { Helmet } from 'react-helmet';
 import generatePath from 'lib/generatePath';
 import { withRouter } from 'lib/withRouter';
 import { get } from 'lib/AJAX';
-import { setBasePath } from 'lib/AJAX';
 
 // The initial and max amount of rows fetched by lazy loading
 const MAX_ROWS_FETCHED = 200;
@@ -212,7 +211,6 @@ class Browser extends DashboardView {
   componentDidMount() {
     this.addLocation(this.props.params.appId);
     window.addEventListener('mouseup', this.onMouseUpRowCheckBox);
-    setBasePath('/');
     get('/parse-dashboard-config.json').then(data => {
       this.setState({ configData: data });
       this.classAndCloudFuntionMap(this.state.configData);
@@ -266,16 +264,20 @@ class Browser extends DashboardView {
     });
   }
 
-  fetchAggregationPanelData(objectId, className) {
+  fetchAggregationPanelData(objectId, className, appId) {
     this.setState({
       isLoading: true,
     });
     const params = {
-      objectId: objectId,
+      object: Parse.Object.extend(className).createWithoutData(objectId).toPointer(),
     };
-    const cloudCodeFunction = this.state.classwiseCloudFunctions[className][0].cloudCodeFunction;
-
-    Parse.Cloud.run(cloudCodeFunction, params).then(
+    const options = {
+      useMasterKey: true,
+    };
+    const appName = this.props.params.appId;
+    const cloudCodeFunction =
+      this.state.classwiseCloudFunctions[`${appId}${appName}`]?.[className][0].cloudCodeFunction;
+    Parse.Cloud.run(cloudCodeFunction, params, options).then(
       result => {
         if (result && result.panel && result.panel && result.panel.segments) {
           this.setState({ AggregationPanelData: result, isLoading: false });
@@ -284,7 +286,7 @@ class Browser extends DashboardView {
             isLoading: false,
             errorAggregatedData: 'Improper JSON format',
           });
-          this.showNote(this.state.errorAggregatedData,true)
+          this.showNote(this.state.errorAggregatedData, true);
         }
       },
       error => {
@@ -292,7 +294,7 @@ class Browser extends DashboardView {
           isLoading: false,
           errorAggregatedData: error.message,
         });
-        this.showNote(this.state.errorAggregatedData,true)
+        this.showNote(this.state.errorAggregatedData, true);
       }
     );
   }
@@ -328,18 +330,21 @@ class Browser extends DashboardView {
   classAndCloudFuntionMap(data) {
     const classMap = {};
     data.apps.forEach(app => {
-      app.infoPanel.forEach(panel => {
-        panel.classes.forEach(className => {
-          if (!classMap[className]) {
-            classMap[className] = [];
-          }
-          classMap[className].push({
-            title: panel.title,
-            cloudCodeFunction: panel.cloudCodeFunction,
-            classes: panel.classes,
+      const appName = app.appName;
+      classMap[`${app.appId}${appName}`] = {};
+      app.infoPanel &&
+        app.infoPanel.forEach(panel => {
+          panel.classes.forEach(className => {
+            if (!classMap[`${app.appId}${appName}`][className]) {
+              classMap[`${app.appId}${appName}`][className] = [];
+            }
+            classMap[`${app.appId}${appName}`][className].push({
+              title: panel.title,
+              cloudCodeFunction: panel.cloudCodeFunction,
+              classes: panel.classes,
+            });
           });
         });
-      });
     });
 
     this.setState({ classwiseCloudFunctions: classMap });
@@ -1157,7 +1162,11 @@ class Browser extends DashboardView {
       },
     ]);
     window.open(
-      generatePath(this.context, `browser/${className}?filters=${encodeURIComponent(filters)}`, true),
+      generatePath(
+        this.context,
+        `browser/${className}?filters=${encodeURIComponent(filters)}`,
+        true
+      ),
       '_blank'
     );
   }
@@ -1366,7 +1375,7 @@ class Browser extends DashboardView {
             if (error.code === Parse.Error.AGGREGATE_ERROR) {
               if (error.errors.length == 1) {
                 errorDeletingNote =
-                'Error deleting ' + className + ' with id \'' + error.errors[0].object.id + '\'';
+                  'Error deleting ' + className + ' with id \'' + error.errors[0].object.id + '\'';
               } else if (error.errors.length < toDeleteObjectIds.length) {
                 errorDeletingNote =
                   'Error deleting ' +
@@ -1534,17 +1543,19 @@ class Browser extends DashboardView {
         this.setState(prevState => ({
           processedScripts: prevState.processedScripts + 1,
         }));
-        const note = (typeof response === 'object' ? JSON.stringify(response) : response) || `Ran script "${script.title}" on "${object.id}".`;
+        const note =
+          (typeof response === 'object' ? JSON.stringify(response) : response) ||
+          `Ran script "${script.title}" on "${object.id}".`;
         this.showNote(note);
       }
       this.refresh();
     } catch (e) {
       this.showNote(e.message, true);
       console.log(`Could not run ${script.title}: ${e}`);
-    } finally{
-      this.setState(({
+    } finally {
+      this.setState({
         processedScripts: 0,
-      }));
+      });
     }
   }
 
@@ -2066,6 +2077,7 @@ class Browser extends DashboardView {
             setAggregationPanelData={this.setAggregationPanelData}
             setErrorAggregatedData={this.setErrorAggregatedData}
             errorAggregatedData={this.state.errorAggregatedData}
+            appName={this.props.params.appId}
           />
         );
       }

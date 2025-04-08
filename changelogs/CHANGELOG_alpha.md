@@ -1,3 +1,155 @@
+# [7.0.0-alpha.2](https://github.com/ParsePlatform/parse-dashboard/compare/7.0.0-alpha.1...7.0.0-alpha.2) (2025-03-27)
+
+
+### Features
+
+* Allow to select and copy multiple cells in data browser ([#2691](https://github.com/ParsePlatform/parse-dashboard/issues/2691)) ([eb50315](https://github.com/ParsePlatform/parse-dashboard/commit/eb503151b30a5fd35437559eaddfc7e7e5991dc7))
+
+# [7.0.0-alpha.1](https://github.com/ParsePlatform/parse-dashboard/compare/6.2.1-alpha.1...7.0.0-alpha.1) (2025-03-22)
+
+
+### Features
+
+* Increase minimum required Node versions to `18.20.4`, `20.18.0`, `22.12.0` ([#2694](https://github.com/ParsePlatform/parse-dashboard/issues/2694)) ([034df6a](https://github.com/ParsePlatform/parse-dashboard/commit/034df6af3526edc33768f408c9e8faf018fa2ba9))
+
+
+### BREAKING CHANGES
+
+* Increases the minimum required Node versions to `18.20.4`, `20.18.0`, `22.12.0`. ([034df6a](034df6a))
+
+## [6.2.1-alpha.1](https://github.com/ParsePlatform/parse-dashboard/compare/6.2.0...6.2.1-alpha.1) (2025-03-19)
+
+
+### Bug Fixes
+
+* Title row disappears when scrolling down in data browser ([#2690](https://github.com/ParsePlatform/parse-dashboard/issues/2690)) ([7eebc45](https://github.com/ParsePlatform/parse-dashboard/commit/7eebc45a17844e7d72c5a7e86963ee355f63dd77))
+
+# [6.2.0-alpha.3](https://github.com/ParsePlatform/parse-dashboard/compare/6.2.0-alpha.2...6.2.0-alpha.3) (2025-03-16)
+
+
+### Bug Fixes
+
+* Bump @babel/runtime from 7.20.13 to 7.26.10 ([#2677](https://github.com/ParsePlatform/parse-dashboard/issues/2677)) ([37f4ea6](https://github.com/ParsePlatform/parse-dashboard/commit/37f4ea64a39c0f54aaf2e3631fd1f7b6bc03ae96))
+
+# [6.2.0-alpha.2](https://github.com/ParsePlatform/parse-dashboard/compare/6.2.0-alpha.1...6.2.0-alpha.2) (2025-03-16)
+
+
+### Bug Fixes
+
+* Security upgrade node from 20.18.2-alpine3.20 to 20.19.0-alpine3.20 ([#2676](https://github.com/ParsePlatform/parse-dashboard/issues/2676)) ([d251334](https://github.com/ParsePlatform/parse-dashboard/commit/d251334df22fbe46e77076bb583b218be6f1889c))
+
+# [6.2.0-alpha.1](https://github.com/ParsePlatform/parse-dashboard/compare/6.1.1-alpha.1...6.2.0-alpha.1) (2025-03-09)
+
+
+### Features
+
+* Use Enter key to edit cell content in data browser ([#2672](https://github.com/ParsePlatform/parse-dashboard/issues/2672)) ([ac2dc41](https://github.com/ParsePlatform/parse-dashboard/commit/ac2dc41122faedb1fb7da205ba26229a77417da8))
+
+## [6.1.1-alpha.1](https://github.com/ParsePlatform/parse-dashboard/compare/6.1.0...6.1.1-alpha.1) (2025-03-06)
+
+
+### Bug Fixes
+
+* Dashboard crashes when setting `unique` filter on pointer field in data browser ([#2660](https://github.com/ParsePlatform/parse-dashboard/issues/2660)) ([68fdbe8](https://github.com/ParsePlatform/parse-dashboard/commit/68fdbe8460d2afafbc922479bfef86e994449a20))
+
+# [6.0.0-alpha.30](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.29...6.0.0-alpha.30) (2025-03-03)
+
+
+### Features
+
+* Add cell selection in data browser on space bar touch down ([#2661](https://github.com/ParsePlatform/parse-dashboard/issues/2661)) ([9d623a9](https://github.com/ParsePlatform/parse-dashboard/commit/9d623a97a4e9ff9692f72191a33441a22fb6956e))
+
+# [6.0.0-alpha.29](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.28...6.0.0-alpha.29) (2025-02-14)
+
+
+### Features
+
+* Add dynamic master key by allowing to set option `masterKey` to a function ([#2655](https://github.com/ParsePlatform/parse-dashboard/issues/2655)) ([9025ed0](https://github.com/ParsePlatform/parse-dashboard/commit/9025ed07b5e7fd801a6ec56c71a12299b2d57279))
+
+# [6.0.0-alpha.28](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.27...6.0.0-alpha.28) (2025-02-01)
+
+
+### Bug Fixes
+
+* Info panel item `panel` calls Cloud Code with parameter `objectId` instead of `Parse.Object` and without `masterKey` ([#2649](https://github.com/ParsePlatform/parse-dashboard/issues/2649)) ([884ff70](https://github.com/ParsePlatform/parse-dashboard/commit/884ff70567e372ff676297b6fb7856fbb7b71cbb))
+
+# [6.0.0-alpha.27](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.26...6.0.0-alpha.27) (2025-02-01)
+
+
+### Bug Fixes
+
+* Security upgrade node from 20.17.0-alpine3.20 to 20.18.2-alpine3.20 ([#2647](https://github.com/ParsePlatform/parse-dashboard/issues/2647)) ([44df723](https://github.com/ParsePlatform/parse-dashboard/commit/44df723b56636607f44c16f2ca24e81e0e17dfb3))
+
+# [6.0.0-alpha.26](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.25...6.0.0-alpha.26) (2025-01-31)
+
+
+### Features
+
+* Add info panel `keyValue` item parameter `isRelativeUrl` to link to dashboard pages ([#2646](https://github.com/ParsePlatform/parse-dashboard/issues/2646)) ([6389fc6](https://github.com/ParsePlatform/parse-dashboard/commit/6389fc6097a76dc95e3cbcdab56c8d1f96909d97))
+
+# [6.0.0-alpha.25](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.24...6.0.0-alpha.25) (2025-01-30)
+
+
+### Features
+
+* Add info panel item `panel` to load and display data on demand ([#2622](https://github.com/ParsePlatform/parse-dashboard/issues/2622)) ([8e5741d](https://github.com/ParsePlatform/parse-dashboard/commit/8e5741d73b5a8c4fcb5d4248de1bdcd7bd957ee8))
+
+# [6.0.0-alpha.24](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.23...6.0.0-alpha.24) (2025-01-29)
+
+
+### Bug Fixes
+
+* Info panel Cloud Code call sends `objectId` instead of `Parse.Object` ([#2643](https://github.com/ParsePlatform/parse-dashboard/issues/2643)) ([a4bcabc](https://github.com/ParsePlatform/parse-dashboard/commit/a4bcabc5c5eaf07bc9eed11814c19901e1d310da))
+
+# [6.0.0-alpha.23](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.22...6.0.0-alpha.23) (2025-01-29)
+
+
+### Bug Fixes
+
+* Info panel Cloud Code call is unauthenticated without using master key ([#2641](https://github.com/ParsePlatform/parse-dashboard/issues/2641)) ([e879e4f](https://github.com/ParsePlatform/parse-dashboard/commit/e879e4f541dc0aa3e23afe6606ee7df9ba22b63a))
+
+# [6.0.0-alpha.22](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.21...6.0.0-alpha.22) (2025-01-29)
+
+
+### Bug Fixes
+
+* Info panel not configurable via `new ParseDashboard()` when running as express middleware ([#2639](https://github.com/ParsePlatform/parse-dashboard/issues/2639)) ([a9b8cd4](https://github.com/ParsePlatform/parse-dashboard/commit/a9b8cd4a7228837cbb462a45e39b01494852f347))
+
+# [6.0.0-alpha.21](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.20...6.0.0-alpha.21) (2025-01-24)
+
+
+### Bug Fixes
+
+* Info panel not showing when some apps miss infoPanel config ([#2627](https://github.com/ParsePlatform/parse-dashboard/issues/2627)) ([539e883](https://github.com/ParsePlatform/parse-dashboard/commit/539e88348721bc100a80ae00de81a921bc2c53d4))
+
+# [6.0.0-alpha.20](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.19...6.0.0-alpha.20) (2024-11-19)
+
+
+### Bug Fixes
+
+* Security upgrade cross-spawn from 7.0.3 to 7.0.6 ([#2629](https://github.com/ParsePlatform/parse-dashboard/issues/2629)) ([47a43e0](https://github.com/ParsePlatform/parse-dashboard/commit/47a43e0ac5d55fc9e214079895f71af7c7e3c350))
+
+# [6.0.0-alpha.19](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.18...6.0.0-alpha.19) (2024-10-16)
+
+
+### Bug Fixes
+
+* Security upgrade ws, parse and puppeteer ([#2618](https://github.com/ParsePlatform/parse-dashboard/issues/2618)) ([bab71dc](https://github.com/ParsePlatform/parse-dashboard/commit/bab71dc57195efa62518127de842edd5902603de))
+
+# [6.0.0-alpha.18](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.17...6.0.0-alpha.18) (2024-10-16)
+
+
+### Bug Fixes
+
+* Node 22 support missing in package.json ([#2617](https://github.com/ParsePlatform/parse-dashboard/issues/2617)) ([8c07284](https://github.com/ParsePlatform/parse-dashboard/commit/8c07284cd571c69426c3f080c2698b0624fd4ec4))
+
+# [6.0.0-alpha.17](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.16...6.0.0-alpha.17) (2024-10-09)
+
+
+### Bug Fixes
+
+* Security upgrade express from 4.21.0 to 4.21.1 ([#2607](https://github.com/ParsePlatform/parse-dashboard/issues/2607)) ([54bf0af](https://github.com/ParsePlatform/parse-dashboard/commit/54bf0afa0691e448b7ec20395753468e047e1fd1))
+
 # [6.0.0-alpha.16](https://github.com/ParsePlatform/parse-dashboard/compare/6.0.0-alpha.15...6.0.0-alpha.16) (2024-10-07)
 
 
