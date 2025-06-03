@@ -111,7 +111,7 @@ class Browser extends DashboardView {
       configData: {},
       classwiseCloudFunctions: {},
       AggregationPanelData: {},
-      isLoading: false,
+      isLoadingInfoPanel: false,
       errorAggregatedData: {},
     };
 
@@ -130,7 +130,7 @@ class Browser extends DashboardView {
     this.showExport = this.showExport.bind(this);
     this.login = this.login.bind(this);
     this.logout = this.logout.bind(this);
-    this.setLoading = this.setLoading.bind(this);
+    this.setLoadingInfoPanel = this.setLoadingInfoPanel.bind(this);
     this.setErrorAggregatedData = this.setErrorAggregatedData.bind(this);
     this.toggleMasterKeyUsage = this.toggleMasterKeyUsage.bind(this);
     this.showAttachRowsDialog = this.showAttachRowsDialog.bind(this);
@@ -255,9 +255,9 @@ class Browser extends DashboardView {
     }
   }
 
-  setLoading(bool) {
+  setLoadingInfoPanel(bool) {
     this.setState({
-      isLoading: bool,
+      isLoadingInfoPanel: bool,
     });
   }
 
@@ -269,7 +269,7 @@ class Browser extends DashboardView {
 
   fetchAggregationPanelData(objectId, className, appId) {
     this.setState({
-      isLoading: true,
+      isLoadingInfoPanel: true,
     });
     const params = {
       object: Parse.Object.extend(className).createWithoutData(objectId).toPointer(),
@@ -283,10 +283,10 @@ class Browser extends DashboardView {
     Parse.Cloud.run(cloudCodeFunction, params, options).then(
       result => {
         if (result && result.panel && result.panel && result.panel.segments) {
-          this.setState({ AggregationPanelData: result, isLoading: false });
+          this.setState({ AggregationPanelData: result, isLoadingInfoPanel: false });
         } else {
           this.setState({
-            isLoading: false,
+            isLoadingInfoPanel: false,
             errorAggregatedData: 'Improper JSON format',
           });
           this.showNote(this.state.errorAggregatedData, true);
@@ -294,7 +294,7 @@ class Browser extends DashboardView {
       },
       error => {
         this.setState({
-          isLoading: false,
+          isLoadingInfoPanel: false,
           errorAggregatedData: error.message,
         });
         this.showNote(this.state.errorAggregatedData, true);
@@ -898,7 +898,6 @@ class Browser extends DashboardView {
 
   async fetchParseData(source, filters) {
     const { useMasterKey, skip, limit } = this.state;
-    this.setLoading(true);
     this.setState({
       data: null,
     })
@@ -931,8 +930,6 @@ class Browser extends DashboardView {
     this.setState({ isUnique, uniqueField });
 
     const data = await promise;
-
-    this.setLoading(false);
     return data;
   }
 
@@ -1074,8 +1071,26 @@ class Browser extends DashboardView {
     });
   }
 
-  saveFilters(filters, name) {
-    const _filters = JSON.stringify(filters.toJSON());
+  saveFilters(filters, name, relativeDate) {
+    const jsonFilters = filters.toJSON();
+    if (relativeDate && jsonFilters?.length) {
+      for (let i = 0; i < jsonFilters.length; i++) {
+        const filter = jsonFilters[i];
+        const compareTo = filter.get('compareTo');
+        if (compareTo?.__type === 'Date') {
+          compareTo.__type = 'RelativeDate';
+          const now = new Date();
+          const date = new Date(compareTo.iso);
+          const diff = date.getTime() - now.getTime();
+          compareTo.value = Math.floor(diff / 1000);
+          delete compareTo.iso;
+          filter.set('compareTo', compareTo);
+          jsonFilters[i] = filter;
+        }
+      }
+    }
+
+    const _filters = JSON.stringify(jsonFilters);
     const preferences = ClassPreferences.getPreferences(
       this.context.applicationId,
       this.props.params.className
@@ -1083,6 +1098,7 @@ class Browser extends DashboardView {
     if (!preferences.filters.includes(_filters)) {
       preferences.filters.push({
         name,
+        id: crypto.randomUUID(),
         filter: _filters,
       });
     }
@@ -1091,6 +1107,7 @@ class Browser extends DashboardView {
       this.context.applicationId,
       this.props.params.className
     );
+
     super.forceUpdate();
   }
 
@@ -1121,7 +1138,7 @@ class Browser extends DashboardView {
         ordering: ordering,
         selection: {},
         errorAggregatedData: {},
-        isLoading: false,
+        isLoadingInfoPanel: false,
         AggregationPanelData: {},
       },
       () => this.fetchData(source, this.state.filters)
@@ -1554,24 +1571,63 @@ class Browser extends DashboardView {
   }
 
   async confirmExecuteScriptRows(script) {
+    const batchSize = script.executionBatchSize || 1;
     try {
-      const objects = [];
-      Object.keys(this.state.selection).forEach(key =>
-        objects.push(Parse.Object.extend(this.props.params.className).createWithoutData(key))
+      const objects = Object.keys(this.state.selection).map(key =>
+        Parse.Object.extend(this.props.params.className).createWithoutData(key)
       );
-      for (const object of objects) {
-        const response = await Parse.Cloud.run(
-          script.cloudCodeFunction,
-          { object: object.toPointer() },
-          { useMasterKey: true }
+
+      let totalErrorCount = 0;
+      let batchCount = 0;
+      const totalBatchCount = Math.ceil(objects.length / batchSize);
+
+      for (let i = 0; i < objects.length; i += batchSize) {
+        batchCount++;
+        const batch = objects.slice(i, i + batchSize);
+        const promises = batch.map(object =>
+          Parse.Cloud.run(
+            script.cloudCodeFunction,
+            { object: object.toPointer() },
+            { useMasterKey: true }
+          ).then(response => ({
+            objectId: object.id,
+            response,
+          })).catch(error => ({
+            objectId: object.id,
+            error,
+          }))
         );
-        this.setState(prevState => ({
-          processedScripts: prevState.processedScripts + 1,
-        }));
-        const note =
-          (typeof response === 'object' ? JSON.stringify(response) : response) ||
-          `Ran script "${script.title}" on "${object.id}".`;
-        this.showNote(note);
+
+        const results = await Promise.all(promises);
+
+        let batchErrorCount = 0;
+        results.forEach(({ objectId, response, error }) => {
+          this.setState(prevState => ({
+            processedScripts: prevState.processedScripts + 1,
+          }));
+
+          if (error) {
+            batchErrorCount += 1;
+            const errorMessage = `Error running script "${script.title}" on "${objectId}": ${error.message}`;
+            this.showNote(errorMessage, true);
+            console.error(errorMessage, error);
+          } else {
+            const note =
+              (typeof response === 'object' ? JSON.stringify(response) : response) ||
+              `Ran script "${script.title}" on "${objectId}".`;
+            this.showNote(note);
+          }
+        });
+
+        totalErrorCount += batchErrorCount;
+
+        if (objects.length > 1) {
+          this.showNote(`Ran script "${script.title}" on ${batch.length} objects in batch ${batchCount}/${totalBatchCount} with ${batchErrorCount} errors.`, batchErrorCount > 0);
+        }
+      }
+
+      if (objects.length > 1) {
+        this.showNote(`Ran script "${script.title}" on ${objects.length} objects in ${batchCount} batches with ${totalErrorCount} errors.`, totalErrorCount > 0);
       }
       this.refresh();
     } catch (e) {
@@ -1876,7 +1932,8 @@ class Browser extends DashboardView {
         this.context.applicationId,
         row.name
       );
-      row.filters = filters;
+      // Set filters sorted alphabetically
+      row.filters = filters.sort((a, b) => a.name.localeCompare(b.name));
       allCategories.push(row);
     }
 
@@ -1885,11 +1942,40 @@ class Browser extends DashboardView {
         current={current}
         params={this.props.location?.search}
         linkPrefix={'browser/'}
-        filterClicked={url => this.props.navigate(generatePath(this.context, url))}
-        removeFilter={filter => this.removeFilter(filter)}
+        filterClicked={url => {
+          this.resetPage();
+          this.props.navigate(generatePath(this.context, url));
+        }}
+        removeFilter={filter => {
+          this.resetPage();
+          this.removeFilter(filter)
+        }}
+        classClicked={() => {
+          this.resetPage();
+        }}
         categories={allCategories}
       />
     );
+  }
+
+  /**
+   * Resets the page to the first page of results and scrolls to the top.
+   */
+  resetPage() {
+    // Unselect any currently selected cell and cancel editing action
+    this.dataBrowserRef.current.setCurrent(null);
+    this.dataBrowserRef.current.setEditing(false);
+
+    // Scroll to top
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+
+    // Reset pagination to page 1
+    this.setState({
+      skip: 0,
+    });
   }
 
   showNote(message, isError) {
@@ -2098,9 +2184,8 @@ class Browser extends DashboardView {
               classes={this.classes}
               classwiseCloudFunctions={this.state.classwiseCloudFunctions}
               callCloudFunction={this.fetchAggregationPanelData}
-              isLoadingCloudFunction={this.state.isLoading}
-              isLoading={this.state.isLoading}
-              setLoading={this.setLoading}
+              isLoadingCloudFunction={this.state.isLoadingInfoPanel}
+              setLoadingInfoPanel={this.setLoadingInfoPanel}
               AggregationPanelData={this.state.AggregationPanelData}
               setAggregationPanelData={this.setAggregationPanelData}
               setErrorAggregatedData={this.setErrorAggregatedData}

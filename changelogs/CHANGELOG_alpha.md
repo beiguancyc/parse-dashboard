@@ -1,3 +1,87 @@
+# [7.2.0-alpha.9](https://github.com/parse-community/parse-dashboard/compare/7.2.0-alpha.8...7.2.0-alpha.9) (2025-05-27)
+
+
+### Features
+
+* Add script execution on parallel batches with option `script.executionBatchSize` ([#2828](https://github.com/parse-community/parse-dashboard/issues/2828)) ([cee8b8d](https://github.com/parse-community/parse-dashboard/commit/cee8b8dd12bc44a352e43073aed65782277841dd))
+
+# [7.2.0-alpha.8](https://github.com/parse-community/parse-dashboard/compare/7.2.0-alpha.7...7.2.0-alpha.8) (2025-05-25)
+
+
+### Bug Fixes
+
+* Notifications fade out erratically when executing a script on large number of rows ([#2822](https://github.com/parse-community/parse-dashboard/issues/2822)) ([3891381](https://github.com/parse-community/parse-dashboard/commit/38913813f0f3252b241a322aaf50142d5564201a))
+
+# [7.2.0-alpha.7](https://github.com/parse-community/parse-dashboard/compare/7.2.0-alpha.6...7.2.0-alpha.7) (2025-05-25)
+
+
+### Bug Fixes
+
+* Data browser not scrolling to top when changing filter while cell selected ([#2821](https://github.com/parse-community/parse-dashboard/issues/2821)) ([c2527dc](https://github.com/parse-community/parse-dashboard/commit/c2527dc1d3e084dcab3d52955bae7760bb27da36))
+
+# [7.2.0-alpha.6](https://github.com/parse-community/parse-dashboard/compare/7.2.0-alpha.5...7.2.0-alpha.6) (2025-05-24)
+
+
+### Features
+
+* Add relative date filter in data browser for date constraints relative to when the query is run ([#2736](https://github.com/parse-community/parse-dashboard/issues/2736)) ([d9dfd69](https://github.com/parse-community/parse-dashboard/commit/d9dfd69b0fcef01456f1feee9b939b7504113e29))
+
+# [7.2.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/7.2.0-alpha.4...7.2.0-alpha.5) (2025-05-24)
+
+
+### Features
+
+* Add confirmation dialog before saving a Cloud Config parameter that has been modified since editing it ([#2770](https://github.com/parse-community/parse-dashboard/issues/2770)) ([adb9b5c](https://github.com/parse-community/parse-dashboard/commit/adb9b5c34c7e6cb02d63ad35fbcca8ea9544e36c))
+
+# [7.2.0-alpha.4](https://github.com/parse-community/parse-dashboard/compare/7.2.0-alpha.3...7.2.0-alpha.4) (2025-05-24)
+
+
+### Bug Fixes
+
+* Improperly aligned unfolding sub-items in context menu in data browser ([#2726](https://github.com/parse-community/parse-dashboard/issues/2726)) ([3fed292](https://github.com/parse-community/parse-dashboard/commit/3fed292b70f9400d4fb09b44d215de377d568c03))
+
+# [7.2.0-alpha.3](https://github.com/parse-community/parse-dashboard/compare/7.2.0-alpha.2...7.2.0-alpha.3) (2025-05-19)
+
+
+### Features
+
+* Keyboard Enter key can be used to select item in data browser filter dialog field dropdown ([#2771](https://github.com/parse-community/parse-dashboard/issues/2771)) ([dc14710](https://github.com/parse-community/parse-dashboard/commit/dc14710b63b0dc79ae52b322c683204941c4cb11))
+
+# [7.2.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/7.2.0-alpha.1...7.2.0-alpha.2) (2025-05-09)
+
+
+### Bug Fixes
+
+* Pagination does not reset to page 1 when clicking on class or filter ([#2798](https://github.com/parse-community/parse-dashboard/issues/2798)) ([29d1447](https://github.com/parse-community/parse-dashboard/commit/29d1447509db74c2ddc0c7f01a1cb7c7cd8573ff))
+
+# [7.2.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/7.1.1-alpha.3...7.2.0-alpha.1) (2025-05-06)
+
+
+### Features
+
+* Add custom CSS styling for info panel items ([#2788](https://github.com/parse-community/parse-dashboard/issues/2788)) ([f031e5d](https://github.com/parse-community/parse-dashboard/commit/f031e5d4fa509c9fe098d0a6c77e960f79536334))
+
+## [7.1.1-alpha.3](https://github.com/parse-community/parse-dashboard/compare/7.1.1-alpha.2...7.1.1-alpha.3) (2025-05-03)
+
+
+### Bug Fixes
+
+* Selecting a saved filter in data browser may highlight a different filter ([#2783](https://github.com/parse-community/parse-dashboard/issues/2783)) ([4c6e853](https://github.com/parse-community/parse-dashboard/commit/4c6e853f4aa660a8dab61f349f8ccf70572ab8ca))
+
+## [7.1.1-alpha.2](https://github.com/parse-community/parse-dashboard/compare/7.1.1-alpha.1...7.1.1-alpha.2) (2025-05-03)
+
+
+### Bug Fixes
+
+* Data browser table shows loading indicator when info panel is loading ([#2782](https://github.com/parse-community/parse-dashboard/issues/2782)) ([da57e5e](https://github.com/parse-community/parse-dashboard/commit/da57e5ea5ec77abc1bbd4d97ba3a5a30cd82e4a7))
+
+## [7.1.1-alpha.1](https://github.com/parse-community/parse-dashboard/compare/7.1.0...7.1.1-alpha.1) (2025-05-02)
+
+
+### Bug Fixes
+
+* Saving new filter in data browser overwrites filters added in other dashboard instances ([#2769](https://github.com/parse-community/parse-dashboard/issues/2769)) ([46bc154](https://github.com/parse-community/parse-dashboard/commit/46bc154cc008c2d8f8d8248e52ec06b9e64cb779))
+
 # [7.1.0-alpha.12](https://github.com/parse-community/parse-dashboard/compare/7.1.0-alpha.11...7.1.0-alpha.12) (2025-04-29)
 
 
