@@ -7,6 +7,7 @@
  */
 import AccountOverview from './Account/AccountOverview.react';
 import AccountView from './AccountView.react';
+import Agent from './Data/Agent/Agent.react';
 import AnalyticsOverview from './Analytics/Overview/Overview.react';
 import ApiConsole from './Data/ApiConsole/ApiConsole.react';
 import AppData from './AppData.react';
@@ -44,6 +45,7 @@ import SlowQueries from './Analytics/SlowQueries/SlowQueries.react';
 import styles from 'dashboard/Apps/AppsIndex.scss';
 import UsersSettings from './Settings/UsersSettings.react';
 import Webhooks from './Data/Webhooks/Webhooks.react';
+import Views from './Data/Views/Views.react';
 import { AsyncStatus } from 'lib/Constants';
 import baseStyles from 'stylesheets/base.scss';
 import { get } from 'lib/AJAX';
@@ -111,6 +113,7 @@ export default class Dashboard extends React.Component {
       configLoadingError: '',
       configLoadingState: AsyncStatus.PROGRESS,
       newFeaturesInLatestVersion: [],
+      agentConfig: null,
     };
     setBasePath(props.path);
     sessionStorage.removeItem('username');
@@ -119,8 +122,8 @@ export default class Dashboard extends React.Component {
 
   componentDidMount() {
     get('/parse-dashboard-config.json')
-      .then(({ apps, newFeaturesInLatestVersion = [] }) => {
-        this.setState({ newFeaturesInLatestVersion });
+      .then(({ apps, newFeaturesInLatestVersion = [], agent }) => {
+        this.setState({ newFeaturesInLatestVersion, agentConfig: agent });
 
         const appInfoPromises = apps.map(app => {
           if (app.serverURL.startsWith('https://api.parse.com/1')) {
@@ -270,6 +273,9 @@ export default class Dashboard extends React.Component {
 
         <Route path="cloud_code" element={<CloudCode />} />
         <Route path="cloud_code/*" element={<CloudCode />} />
+        <Route path="views/:name" element={<Views />} />
+        <Route path="views" element={<Views />} />
+        <Route path="agent" element={<Agent agentConfig={this.state.agentConfig} />} />
         <Route path="webhooks" element={<Webhooks />} />
 
         <Route path="jobs">{JobsRoute}</Route>

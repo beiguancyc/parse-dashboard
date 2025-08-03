@@ -7,18 +7,18 @@
  */
 import BrowserFilter from 'components/BrowserFilter/BrowserFilter.react';
 import BrowserMenu from 'components/BrowserMenu/BrowserMenu.react';
-import Icon from 'components/Icon/Icon.react';
 import MenuItem from 'components/BrowserMenu/MenuItem.react';
+import Separator from 'components/BrowserMenu/Separator.react';
+import ColumnsConfiguration from 'components/ColumnsConfiguration/ColumnsConfiguration.react';
+import Icon from 'components/Icon/Icon.react';
+import Toggle from 'components/Toggle/Toggle.react';
+import Toolbar from 'components/Toolbar/Toolbar.react';
+import styles from 'dashboard/Data/Browser/Browser.scss';
+import LoginDialog from 'dashboard/Data/Browser/LoginDialog.react';
+import SecureFieldsDialog from 'dashboard/Data/Browser/SecureFieldsDialog.react';
+import SecurityDialog from 'dashboard/Data/Browser/SecurityDialog.react';
 import prettyNumber from 'lib/prettyNumber';
 import React, { useRef } from 'react';
-import Separator from 'components/BrowserMenu/Separator.react';
-import styles from 'dashboard/Data/Browser/Browser.scss';
-import Toolbar from 'components/Toolbar/Toolbar.react';
-import SecurityDialog from 'dashboard/Data/Browser/SecurityDialog.react';
-import ColumnsConfiguration from 'components/ColumnsConfiguration/ColumnsConfiguration.react';
-import SecureFieldsDialog from 'dashboard/Data/Browser/SecureFieldsDialog.react';
-import LoginDialog from 'dashboard/Data/Browser/LoginDialog.react';
-import Toggle from 'components/Toggle/Toggle.react';
 
 const BrowserToolbar = ({
   className,
@@ -32,6 +32,7 @@ const BrowserToolbar = ({
   setCurrent,
   onFilterChange,
   onFilterSave,
+  onDeleteFilter,
   onAddColumn,
   onAddRow,
   onAddRowWithModal,
@@ -82,6 +83,8 @@ const BrowserToolbar = ({
   classwiseCloudFunctions,
   appId,
   appName,
+  scrollToTop,
+  toggleScrollToTop,
 }) => {
   const selectionLength = Object.keys(selection).length;
   const isPendingEditCloneRows = editCloneRows && editCloneRows.length > 0;
@@ -364,6 +367,30 @@ const BrowserToolbar = ({
         </BrowserMenu>
       )}
       {onAddRow && <div className={styles.toolbarSeparator} />}
+      <BrowserMenu setCurrent={setCurrent} title="Settings" icon="gear-solid">
+        <BrowserMenu title="Info Panel" setCurrent={setCurrent}>
+          <MenuItem
+            text={
+              <span>
+                {scrollToTop && (
+                  <Icon
+                    name="check"
+                    width={12}
+                    height={12}
+                    fill="#ffffffff"
+                    className="menuCheck"
+                  />
+                )}
+                Scroll to top
+              </span>
+            }
+            onClick={() => {
+              toggleScrollToTop();
+            }}
+          />
+        </BrowserMenu>
+      </BrowserMenu>
+      <div className={styles.toolbarSeparator} />
       <a className={classes.join(' ')} onClick={isPendingEditCloneRows ? null : onRefresh}>
         <Icon name="refresh-solid" width={14} height={14} />
         <span>Refresh</span>
@@ -375,6 +402,7 @@ const BrowserToolbar = ({
         filters={filters}
         onChange={onFilterChange}
         onSaveFilter={onFilterSave}
+        onDeleteFilter={onDeleteFilter}
         className={classNameForEditors}
         blacklistedFilters={onAddRow ? [] : ['unique']}
         disabled={isPendingEditCloneRows}
@@ -424,7 +452,7 @@ const BrowserToolbar = ({
         <noscript />
       )}
       {enableSecurityDialog ? <div className={styles.toolbarSeparator} /> : <noscript />}
-      <BrowserMenu setCurrent={setCurrent} title="Script" icon="gear-solid">
+      <BrowserMenu setCurrent={setCurrent} title="Script" icon="script-solid">
         <MenuItem
           disabled={selectionLength === 0}
           text={

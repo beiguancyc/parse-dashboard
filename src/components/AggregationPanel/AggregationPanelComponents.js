@@ -1,26 +1,55 @@
 import React from 'react';
+import copy from 'copy-to-clipboard';
+import Icon from 'components/Icon/Icon.react';
 import styles from './AggregationPanel.scss';
 
 // Text Element Component
-export const TextElement = ({ text, style}) => (
+export const TextElement = ({ text, style }) => (
   <div className="text-element" style={style}>
     <p>{text}</p>
   </div>
 );
 
 // Key-Value Element Component
-export const KeyValueElement = ({ item, appName, style }) => (
-  <div className={styles.keyValue} style={style}>
-    {item.key}:
-    {item.url ? (
-      <a href={item.isRelativeUrl ? `apps/${appName}/${item.url}` : item.url} target="_blank" rel="noreferrer">
-        {item.value}
-      </a>
-    ) : (
-      <span>{item.value}</span>
-    )}
-  </div>
-);
+export const KeyValueElement = ({ item, appName, style, showNote }) => {
+  const values = Array.isArray(item.values)
+    ? [{ value: item.value, url: item.url, isRelativeUrl: item.isRelativeUrl }, ...item.values]
+    : [{ value: item.value, url: item.url, isRelativeUrl: item.isRelativeUrl }];
+
+  const handleCopy = () => {
+    copy(String(item.value));
+    if (showNote) {
+      showNote('Value copied to clipboard', false);
+    }
+  };
+
+  const renderValue = ({ value, url, isRelativeUrl }) => {
+    if (url) {
+      return (
+        <a href={isRelativeUrl ? `apps/${appName}/${url}` : url} target="_blank" rel="noreferrer">
+          {value}
+        </a>
+      );
+    }
+
+    return <span>{value}</span>;
+  };
+
+  return (
+    <div className={styles.keyValue} style={style}>
+      {item.key}:
+      {values.map((val, idx) => (
+        <React.Fragment key={idx}>
+          {idx > 0 && ' '}
+          {renderValue(val)}
+        </React.Fragment>
+      ))}
+      <span className={styles.copyIcon} onClick={handleCopy}>
+        <Icon name="clone-icon" width={12} height={12} fill="currentColor" />
+      </span>
+    </div>
+  );
+};
 
 // Table Element Component
 export const TableElement = ({ columns, rows, style }) => (
