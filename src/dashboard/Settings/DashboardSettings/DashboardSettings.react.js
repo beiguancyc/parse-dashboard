@@ -17,6 +17,8 @@ import CodeSnippet from 'components/CodeSnippet/CodeSnippet.react';
 import Notification from 'dashboard/Data/Browser/Notification.react';
 import * as ColumnPreferences from 'lib/ColumnPreferences';
 import * as ClassPreferences from 'lib/ClassPreferences';
+import ViewPreferencesManager from 'lib/ViewPreferencesManager';
+import ScriptManager from 'lib/ScriptManager';
 import bcrypt from 'bcryptjs';
 import * as OTPAuth from 'otpauth';
 import QRCode from 'qrcode';
@@ -26,6 +28,8 @@ export default class DashboardSettings extends DashboardView {
     super();
     this.section = 'App Settings';
     this.subsection = 'Dashboard Configuration';
+    this.viewPreferencesManager = null;
+    this.scriptManager = null;
 
     this.state = {
       createUserInput: false,
@@ -39,6 +43,8 @@ export default class DashboardSettings extends DashboardView {
       message: null,
       passwordInput: '',
       passwordHidden: true,
+      migrationLoading: false,
+      storagePreference: 'local', // Will be updated in componentDidMount
       copyData: {
         data: '',
         show: false,
@@ -50,6 +56,89 @@ export default class DashboardSettings extends DashboardView {
         mfa: '',
       },
     };
+  }
+
+  componentDidMount() {
+    this.initializeManagers();
+  }
+
+  initializeManagers() {
+    if (this.context) {
+      this.viewPreferencesManager = new ViewPreferencesManager(this.context);
+      this.scriptManager = new ScriptManager(this.context);
+      this.loadStoragePreference();
+    }
+  }
+
+  loadStoragePreference() {
+    if (this.viewPreferencesManager) {
+      const preference = this.viewPreferencesManager.getStoragePreference(this.context.applicationId);
+      this.setState({ storagePreference: preference });
+    }
+  }
+
+  handleStoragePreferenceChange(preference) {
+    if (this.viewPreferencesManager) {
+      this.viewPreferencesManager.setStoragePreference(this.context.applicationId, preference);
+      this.setState({ storagePreference: preference });
+
+      // Show a notification about the change
+      this.showNote(`Storage preference changed to ${preference === 'server' ? 'server' : 'browser'}`);
+    }
+  }
+
+  async migrateToServer() {
+    if (!this.viewPreferencesManager) {
+      this.showNote('ViewPreferencesManager not initialized');
+      return;
+    }
+
+    if (!this.viewPreferencesManager.isServerConfigEnabled()) {
+      this.showNote('Server configuration is not enabled for this app. Please add a "config" section to your app configuration.');
+      return;
+    }
+
+    this.setState({ migrationLoading: true });
+
+    try {
+      const result = await this.viewPreferencesManager.migrateToServer(this.context.applicationId);
+      if (result.success) {
+        if (result.viewCount > 0) {
+          this.showNote(`Successfully migrated ${result.viewCount} view(s) to server storage.`);
+        } else {
+          this.showNote('No views found to migrate.');
+        }
+      }
+    } catch (error) {
+      this.showNote(`Failed to migrate views: ${error.message}`);
+    } finally {
+      this.setState({ migrationLoading: false });
+    }
+  }
+
+  async deleteFromBrowser() {
+    if (!window.confirm('Are you sure you want to delete all dashboard settings from browser storage? This action cannot be undone.')) {
+      return;
+    }
+
+    if (!this.viewPreferencesManager) {
+      this.showNote('ViewPreferencesManager not initialized');
+      return;
+    }
+
+    if (!this.scriptManager) {
+      this.showNote('ScriptManager not initialized');
+      return;
+    }
+
+    const viewsSuccess = this.viewPreferencesManager.deleteFromBrowser(this.context.applicationId);
+    const scriptsSuccess = this.scriptManager.deleteFromBrowser(this.context.applicationId);
+
+    if (viewsSuccess && scriptsSuccess) {
+      this.showNote('Successfully deleted dashboard settings from browser storage.');
+    } else {
+      this.showNote('Failed to delete all dashboard settings from browser storage.');
+    }
   }
 
   getColumns() {
@@ -382,6 +471,64 @@ export default class DashboardSettings extends DashboardView {
             }
           />
         </Fieldset>
+        {this.viewPreferencesManager && this.scriptManager && this.viewPreferencesManager.isServerConfigEnabled() && (
+          <Fieldset legend="Settings Storage">
+            <div style={{ marginBottom: '20px', color: '#666', fontSize: '14px', textAlign: 'center' }}>
+              Storing dashboard settings on the server rather than locally in the browser storage makes the settings available across devices and browsers. It also prevents them from getting lost when resetting the browser website data. Settings that can be stored on the server are currently Views and JS Console scripts.
+            </div>
+            <Field
+              label={
+                <Label
+                  text="Storage Location"
+                  description="Choose where your dashboard settings are stored and loaded from."
+                />
+              }
+              input={
+                <Toggle
+                  value={this.state.storagePreference}
+                  type={Toggle.Types.CUSTOM}
+                  optionLeft="local"
+                  optionRight="server"
+                  labelLeft="Browser"
+                  labelRight="Server"
+                  colored={true}
+                  onChange={(preference) => this.handleStoragePreferenceChange(preference)}
+                />
+              }
+            />
+            <Field
+              label={
+                <Label
+                  text="Migrate Settings to Server"
+                  description="Migrates browser-stored settings to the server. ⚠️ This overwrites existing dashboard settings on the server."
+                />
+              }
+              input={
+                <FormButton
+                  color="blue"
+                  value={this.state.migrationLoading ? 'Migrating...' : 'Migrate to Server'}
+                  disabled={this.state.migrationLoading}
+                  onClick={() => this.migrateToServer()}
+                />
+              }
+            />
+            <Field
+              label={
+                <Label
+                  text="Delete Settings from Browser"
+                  description="Removes settings from browser storage. ⚠️ Migrate your settings to the server and test them first."
+                />
+              }
+              input={
+                <FormButton
+                  color="red"
+                  value="Delete from Browser"
+                  onClick={() => this.deleteFromBrowser()}
+                />
+              }
+            />
+          </Fieldset>
+        )}
         {this.state.copyData.show && copyData}
         {this.state.createUserInput && createUserInput}
         {this.state.newUser.show && userData}

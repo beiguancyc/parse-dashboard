@@ -1,3 +1,17 @@
+# [7.4.0](https://github.com/parse-community/parse-dashboard/compare/7.3.0...7.4.0) (2025-09-01)
+
+
+### Bug Fixes
+
+* Legacy script in JavaScript console not imported to modern console ([#2963](https://github.com/parse-community/parse-dashboard/issues/2963)) ([8c8d084](https://github.com/parse-community/parse-dashboard/commit/8c8d0849521eccd23e590c57ca91069bb32c5035))
+
+### Features
+
+* Add App Settings option to store dashboard settings on server ([#2958](https://github.com/parse-community/parse-dashboard/issues/2958)) ([666e078](https://github.com/parse-community/parse-dashboard/commit/666e07860ba1478aec3cde9db5c98a5772ea07fb))
+* Add config parameter name to quick add dialogs in Config page ([#2970](https://github.com/parse-community/parse-dashboard/issues/2970)) ([31988f6](https://github.com/parse-community/parse-dashboard/commit/31988f68cda16856b0c6afb22e4f06321cbcef03))
+* Add info panel setting to auto-load first row on opening new browser tab ([#2972](https://github.com/parse-community/parse-dashboard/issues/2972)) ([020a25d](https://github.com/parse-community/parse-dashboard/commit/020a25dc302e45e947eb5c15a271bb9f0f1211f2))
+* Modernize JavaScript console with tabs and server-side storage of scripts ([#2962](https://github.com/parse-community/parse-dashboard/issues/2962)) ([6e0c7f2](https://github.com/parse-community/parse-dashboard/commit/6e0c7f25b16fdfc0a34123359a8512c26252f269))
+
 # [7.3.0](https://github.com/parse-community/parse-dashboard/compare/7.2.1...7.3.0) (2025-08-01)
 
 

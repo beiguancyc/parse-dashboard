@@ -1,3 +1,38 @@
+# [7.4.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/7.4.0-alpha.4...7.4.0-alpha.5) (2025-08-22)
+
+
+### Features
+
+* Add info panel setting to auto-load first row on opening new browser tab ([#2972](https://github.com/parse-community/parse-dashboard/issues/2972)) ([020a25d](https://github.com/parse-community/parse-dashboard/commit/020a25dc302e45e947eb5c15a271bb9f0f1211f2))
+
+# [7.4.0-alpha.4](https://github.com/parse-community/parse-dashboard/compare/7.4.0-alpha.3...7.4.0-alpha.4) (2025-08-22)
+
+
+### Features
+
+* Add config parameter name to quick add dialogs in Config page ([#2970](https://github.com/parse-community/parse-dashboard/issues/2970)) ([31988f6](https://github.com/parse-community/parse-dashboard/commit/31988f68cda16856b0c6afb22e4f06321cbcef03))
+
+# [7.4.0-alpha.3](https://github.com/parse-community/parse-dashboard/compare/7.4.0-alpha.2...7.4.0-alpha.3) (2025-08-04)
+
+
+### Bug Fixes
+
+* Legacy script in JavaScript console not imported to modern console ([#2963](https://github.com/parse-community/parse-dashboard/issues/2963)) ([8c8d084](https://github.com/parse-community/parse-dashboard/commit/8c8d0849521eccd23e590c57ca91069bb32c5035))
+
+# [7.4.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/7.4.0-alpha.1...7.4.0-alpha.2) (2025-08-04)
+
+
+### Features
+
+* Modernize JavaScript console with tabs and server-side storage of scripts ([#2962](https://github.com/parse-community/parse-dashboard/issues/2962)) ([6e0c7f2](https://github.com/parse-community/parse-dashboard/commit/6e0c7f25b16fdfc0a34123359a8512c26252f269))
+
+# [7.4.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/7.3.0...7.4.0-alpha.1) (2025-08-03)
+
+
+### Features
+
+* Add App Settings option to store dashboard settings on server ([#2958](https://github.com/parse-community/parse-dashboard/issues/2958)) ([666e078](https://github.com/parse-community/parse-dashboard/commit/666e07860ba1478aec3cde9db5c98a5772ea07fb))
+
 # [7.3.0-alpha.44](https://github.com/parse-community/parse-dashboard/compare/7.3.0-alpha.43...7.3.0-alpha.44) (2025-07-31)
 
 
