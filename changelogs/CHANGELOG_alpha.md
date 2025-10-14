@@ -1,3 +1,10 @@
+# [7.6.0-alpha.9](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.8...7.6.0-alpha.9) (2025-10-14)
+
+
+### Bug Fixes
+
+* Security upgrade passport from 0.5.3 to 0.6.0 ([#3000](https://github.com/parse-community/parse-dashboard/issues/3000)) ([fbb5e6d](https://github.com/parse-community/parse-dashboard/commit/fbb5e6d9df5575519d414b98481afd96a4ae11d8))
+
 # [7.6.0-alpha.8](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.7...7.6.0-alpha.8) (2025-10-05)
 
 
