@@ -1,3 +1,17 @@
+# [7.5.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/7.5.0-alpha.1...7.5.0-alpha.2) (2025-09-11)
+
+
+### Features
+
+* Add data browser filter condition `containedIn` ([#2979](https://github.com/parse-community/parse-dashboard/issues/2979)) ([c1dc5bb](https://github.com/parse-community/parse-dashboard/commit/c1dc5bb81823923596e2e1c5c8545ff5cded7856))
+
+# [7.5.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/7.4.0...7.5.0-alpha.1) (2025-09-09)
+
+
+### Features
+
+* Add button to view table to open all pointers of a column in new browser tabs ([#2976](https://github.com/parse-community/parse-dashboard/issues/2976)) ([b8033a4](https://github.com/parse-community/parse-dashboard/commit/b8033a46f519ad98a1c8e59fe4c868aa65b5840c))
+
 # [7.4.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/7.4.0-alpha.4...7.4.0-alpha.5) (2025-08-22)
 
 

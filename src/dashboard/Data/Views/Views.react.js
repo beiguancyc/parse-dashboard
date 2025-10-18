@@ -277,6 +277,9 @@ class Views extends TableView {
             }
             if (!columns[key]) {
               columns[key] = { type, width: Math.min(computeWidth(key), 200) };
+            } else if (type === 'Pointer' && columns[key].type !== 'Pointer') {
+              // If we find a pointer value, upgrade the column type to Pointer
+              columns[key].type = 'Pointer';
             }
             const width = computeWidth(val);
             if (width > columns[key].width && columns[key].width < 200) {
@@ -550,12 +553,41 @@ class Views extends TableView {
   }
 
   renderHeaders() {
-    return this.state.order.map(({ name, width }, i) => (
-      <div key={name} className={styles.headerWrap} style={{ width }}>
-        {name}
-        <DragHandle className={styles.handle} onDrag={delta => this.handleResize(i, delta)} />
-      </div>
-    ));
+    return this.state.order.map(({ name, width }, i) => {
+      const columnType = this.state.columns[name]?.type;
+      const isPointerColumn = columnType === 'Pointer';
+
+      return (
+        <div key={name} className={styles.headerWrap} style={{ width }}>
+          <span className={styles.headerText}>
+            <span className={styles.headerLabel}>{name}</span>
+            {isPointerColumn && (
+              <button
+                type="button"
+                className={styles.pointerIcon}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  this.handleOpenAllPointers(name);
+                  // Remove focus after action to follow UX best practices
+                  e.currentTarget.blur();
+                }}
+                aria-label={`Filter to show all pointers from ${name} column`}
+                title="Filter to show all pointers from this column"
+              >
+                <Icon
+                  name="right-outline"
+                  width={20}
+                  height={20}
+                  fill="white"
+                />
+              </button>
+            )}
+          </span>
+          <DragHandle className={styles.handle} onDrag={delta => this.handleResize(i, delta)} />
+        </div>
+      );
+    });
   }
 
   renderEmpty() {
@@ -823,12 +855,63 @@ class Views extends TableView {
         `browser/${className}?filters=${encodeURIComponent(filters)}`,
         true
       ),
-      '_blank'
+      '_blank',
+      'noopener,noreferrer'
     );
   }
 
   handleValueClick(value) {
     this.setState({ viewValue: value });
+  }
+
+  handleOpenAllPointers(columnName) {
+    const data = this.tableData();
+    const pointers = data
+      .map(row => row[columnName])
+      .filter(value => value && value.__type === 'Pointer' && value.className && value.objectId);
+
+    if (pointers.length === 0) {
+      this.showNote('No pointers found in this column', true);
+      return;
+    }
+
+    // Group pointers by target class
+    const pointersByClass = new Map();
+    pointers.forEach(pointer => {
+      if (!pointersByClass.has(pointer.className)) {
+        pointersByClass.set(pointer.className, new Set());
+      }
+      pointersByClass.get(pointer.className).add(pointer.objectId);
+    });
+
+    // If multiple target classes, show error
+    if (pointersByClass.size > 1) {
+      const classNames = Array.from(pointersByClass.keys()).join(', ');
+      this.showNote(`Cannot filter pointers from multiple classes: ${classNames}. Please use this feature on columns with pointers to a single class.`, true);
+      return;
+    }
+
+    // Get the single target class and unique object IDs
+    const targetClassName = Array.from(pointersByClass.keys())[0];
+    const uniqueObjectIds = Array.from(pointersByClass.get(targetClassName));
+
+    // Navigate to the target class with containedIn filter
+    const filters = JSON.stringify([{
+      field: 'objectId',
+      constraint: 'containedIn',
+      compareTo: uniqueObjectIds
+    }]);
+
+    const path = generatePath(
+      this.context,
+      `browser/${targetClassName}?filters=${encodeURIComponent(filters)}`,
+      true
+    );
+
+    window.open(path, '_blank', 'noopener,noreferrer');
+
+    // Show success notification
+    this.showNote(`Applied filter to show ${uniqueObjectIds.length} pointer${uniqueObjectIds.length > 1 ? 's' : ''} from ${targetClassName}`, false);
   }
 
   showNote(message, isError) {
