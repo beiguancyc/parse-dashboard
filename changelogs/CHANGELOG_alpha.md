@@ -1,3 +1,10 @@
+# [7.6.0-alpha.12](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.11...7.6.0-alpha.12) (2025-10-22)
+
+
+### Bug Fixes
+
+* Security upgrade parse from 3.5.1 to 7.0.1 ([#3003](https://github.com/parse-community/parse-dashboard/issues/3003)) ([5123fbf](https://github.com/parse-community/parse-dashboard/commit/5123fbf28f40d6a4e2e3030c2a0b810131397aea))
+
 # [7.6.0-alpha.11](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.10...7.6.0-alpha.11) (2025-10-14)
 
 
