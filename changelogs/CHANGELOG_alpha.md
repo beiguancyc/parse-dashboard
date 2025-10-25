@@ -1,3 +1,10 @@
+# [7.6.0-alpha.13](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.12...7.6.0-alpha.13) (2025-10-25)
+
+
+### Features
+
+* Add Parse Server version compatibility detection ([#3004](https://github.com/parse-community/parse-dashboard/issues/3004)) ([9a7a60f](https://github.com/parse-community/parse-dashboard/commit/9a7a60fea3e76e66e5c6e5d39d3ad8fb02ba5e38))
+
 # [7.6.0-alpha.12](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.11...7.6.0-alpha.12) (2025-10-22)
 
 
