@@ -1,3 +1,10 @@
+# [8.0.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.1...8.0.0-alpha.2) (2025-10-25)
+
+
+### Bug Fixes
+
+* Cannot connect to server with error invalid header name ([#3006](https://github.com/parse-community/parse-dashboard/issues/3006)) ([ea4ec07](https://github.com/parse-community/parse-dashboard/commit/ea4ec071ae5d88f4cf6ba2c3b1da72509123b39c))
+
 # [8.0.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.13...8.0.0-alpha.1) (2025-10-25)
 
 
