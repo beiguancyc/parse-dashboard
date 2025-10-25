@@ -1,3 +1,15 @@
+# [8.0.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.13...8.0.0-alpha.1) (2025-10-25)
+
+
+### Bug Fixes
+
+* Add missing major version increase of dashboard release ([#3005](https://github.com/parse-community/parse-dashboard/issues/3005)) ([5debb4d](https://github.com/parse-community/parse-dashboard/commit/5debb4dc143e4eebcfabb3e25cc882b6ea3594e7))
+
+
+### BREAKING CHANGES
+
+* This increases the required minimum version to Parse Server 7. ([5debb4d](5debb4d))
+
 # [7.6.0-alpha.13](https://github.com/parse-community/parse-dashboard/compare/7.6.0-alpha.12...7.6.0-alpha.13) (2025-10-25)
 
 
