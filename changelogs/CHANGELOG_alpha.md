@@ -1,3 +1,10 @@
+# [8.0.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.4...8.0.0-alpha.5) (2025-10-29)
+
+
+### Bug Fixes
+
+* Switching between browser tabs can cause illegible text color for config parameter value field ([#3010](https://github.com/parse-community/parse-dashboard/issues/3010)) ([77c5c67](https://github.com/parse-community/parse-dashboard/commit/77c5c67cfecedb20654eede3a167c65654e35b4a))
+
 # [8.0.0-alpha.4](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.3...8.0.0-alpha.4) (2025-10-29)
 
 
