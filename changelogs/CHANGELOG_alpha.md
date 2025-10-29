@@ -1,3 +1,10 @@
+# [8.0.0-alpha.4](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.3...8.0.0-alpha.4) (2025-10-29)
+
+
+### Features
+
+* Add info panel options `prefetchImage`, `prefetchVideo`, `prefetchAudio` to pre-fetch media content in the info panel ([#3009](https://github.com/parse-community/parse-dashboard/issues/3009)) ([6796c9e](https://github.com/parse-community/parse-dashboard/commit/6796c9e5f1fd0110100fb9814f55db4052ebb677))
+
 # [8.0.0-alpha.3](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.2...8.0.0-alpha.3) (2025-10-29)
 
 
