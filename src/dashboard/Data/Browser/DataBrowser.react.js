@@ -768,6 +768,9 @@ export default class DataBrowser extends React.Component {
     return {
       prefetchObjects: config?.prefetchObjects || 0,
       prefetchStale: config?.prefetchStale || 0,
+      prefetchImage: config?.prefetchImage ?? true,
+      prefetchVideo: config?.prefetchVideo ?? true,
+      prefetchAudio: config?.prefetchAudio ?? true,
     };
   }
 
@@ -809,6 +812,66 @@ export default class DataBrowser extends React.Component {
     }
   }
 
+  isSafeHttpUrl(url) {
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  extractMediaUrls(data) {
+    const urls = { images: new Set(), videos: new Set(), audios: new Set() };
+
+    if (!data?.panel?.segments) {
+      return urls;
+    }
+
+    data.panel.segments.forEach(segment => {
+      if (segment.items) {
+        segment.items.forEach(item => {
+          if (item.type === 'image' && item.url && this.isSafeHttpUrl(item.url)) {
+            urls.images.add(item.url);
+          } else if (item.type === 'video' && item.url && this.isSafeHttpUrl(item.url)) {
+            urls.videos.add(item.url);
+          } else if (item.type === 'audio' && item.url && this.isSafeHttpUrl(item.url)) {
+            urls.audios.add(item.url);
+          }
+        });
+      }
+    });
+
+    return urls;
+  }
+
+  prefetchMedia(urls, mediaType) {
+    if (!urls || urls.size === 0) {
+      return;
+    }
+
+    urls.forEach(url => {
+      // Use link-based prefetching for better browser optimization and caching
+      const link = document.createElement('link');
+      link.rel = mediaType === 'image' ? 'preload' : 'prefetch';
+      link.as = mediaType;
+      link.href = url;
+
+      link.onload = () => {
+        // Resource successfully cached, safe to remove the link element
+        link.remove();
+      };
+
+      link.onerror = () => {
+        console.error(`Failed to prefetch ${mediaType}: ${url}`);
+        // Failed to fetch, remove the link element
+        link.remove();
+      };
+
+      document.head.appendChild(link);
+    });
+  }
+
   prefetchObject(objectId) {
     const { className, app } = this.props;
     const cloudCodeFunction =
@@ -831,6 +894,20 @@ export default class DataBrowser extends React.Component {
           [objectId]: { data: result, timestamp: Date.now() },
         },
       }));
+
+      // Prefetch media if enabled
+      const { prefetchImage, prefetchVideo, prefetchAudio } = this.getPrefetchSettings();
+      const mediaUrls = this.extractMediaUrls(result);
+
+      if (prefetchImage && mediaUrls.images.size > 0) {
+        this.prefetchMedia(mediaUrls.images, 'image');
+      }
+      if (prefetchVideo && mediaUrls.videos.size > 0) {
+        this.prefetchMedia(mediaUrls.videos, 'video');
+      }
+      if (prefetchAudio && mediaUrls.audios.size > 0) {
+        this.prefetchMedia(mediaUrls.audios, 'audio');
+      }
     }).catch(error => {
       console.error(`Failed to prefetch object ${objectId}:`, error);
     });
