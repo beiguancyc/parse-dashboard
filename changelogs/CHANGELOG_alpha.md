@@ -1,3 +1,10 @@
+# [8.0.0-alpha.6](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.5...8.0.0-alpha.6) (2025-10-29)
+
+
+### Bug Fixes
+
+* Session management issue that causes malformed redirect URLs ([#3011](https://github.com/parse-community/parse-dashboard/issues/3011)) ([1649dd3](https://github.com/parse-community/parse-dashboard/commit/1649dd31129d9dc7153ffa116f57fbec216142f6))
+
 # [8.0.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.4...8.0.0-alpha.5) (2025-10-29)
 
 
