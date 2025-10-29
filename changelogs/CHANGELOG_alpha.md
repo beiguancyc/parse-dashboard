@@ -1,3 +1,10 @@
+# [8.0.0-alpha.3](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.2...8.0.0-alpha.3) (2025-10-29)
+
+
+### Bug Fixes
+
+* Info panel briefly shows cached media content from previously selected cell when using pre-fetch ([#3008](https://github.com/parse-community/parse-dashboard/issues/3008)) ([dd6a85e](https://github.com/parse-community/parse-dashboard/commit/dd6a85e4734adda9bc9a92d7bdfba2e7a061dd83))
+
 # [8.0.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.1...8.0.0-alpha.2) (2025-10-25)
 
 
