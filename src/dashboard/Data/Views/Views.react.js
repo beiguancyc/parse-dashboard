@@ -81,11 +81,13 @@ class Views extends TableView {
     }
     if (this.props.params.name !== nextProps.params.name || this.context !== nextContext) {
       window.scrollTo({ top: 0 });
+      // Clear table state immediately when switching views to prevent data retention
+      this.setState({ data: [], order: [], columns: {}, tableWidth: 0 });
       this.loadData(nextProps.params.name);
     }
   }
 
-  async loadViews(app) {
+  async loadViews(app, skipDataReload = false) {
     // Initialize ViewPreferencesManager if not already done or if app changed
     if (!this.viewPreferencesManager || this.viewPreferencesManager.app !== app) {
       this.viewPreferencesManager = new ViewPreferencesManager(app);
@@ -130,7 +132,7 @@ class Views extends TableView {
             }
           }
         });
-        if (this._isMounted) {
+        if (this._isMounted && !skipDataReload) {
           this.loadData(this.props.params.name);
         }
       });
@@ -139,7 +141,7 @@ class Views extends TableView {
       // Fallback to local storage
       const views = ViewPreferences.getViews(app.applicationId);
       this.setState({ views, counts: {} }, () => {
-        if (this._isMounted) {
+        if (this._isMounted && !skipDataReload) {
           this.loadData(this.props.params.name);
         }
       });
@@ -719,12 +721,17 @@ class Views extends TableView {
           classes={classNames}
           onCancel={() => this.setState({ showCreate: false })}
           onConfirm={view => {
+            // Generate UUID for new view
+            const newView = {
+              ...view,
+              id: this.viewPreferencesManager.generateViewId()
+            };
             this.setState(
-              state => ({ showCreate: false, views: [...state.views, view] }),
+              state => ({ showCreate: false, views: [...state.views, newView] }),
               async () => {
                 if (this.viewPreferencesManager) {
                   try {
-                    await this.viewPreferencesManager.saveViews(this.context.applicationId, this.state.views);
+                    await this.viewPreferencesManager.saveView(this.context.applicationId, newView, this.state.views);
                   } catch (error) {
                     console.error('Failed to save views:', error);
                     this.showNote('Failed to save view changes', true);
@@ -750,6 +757,9 @@ class Views extends TableView {
           view={this.state.editView}
           onCancel={() => this.setState({ editView: null, editIndex: null })}
           onConfirm={view => {
+            // Use the original view name (before editing) to check if it's the currently displayed view
+            const originalViewName = this.state.editView?.name;
+            const isEditingCurrentView = originalViewName === this.props.params.name;
             this.setState(
               state => {
                 const newViews = [...state.views];
@@ -759,13 +769,16 @@ class Views extends TableView {
               async () => {
                 if (this.viewPreferencesManager) {
                   try {
-                    await this.viewPreferencesManager.saveViews(this.context.applicationId, this.state.views);
+                    await this.viewPreferencesManager.saveView(this.context.applicationId, view, this.state.views);
                   } catch (error) {
                     console.error('Failed to save views:', error);
                     this.showNote('Failed to save view changes', true);
                   }
                 }
-                this.loadViews(this.context);
+                // Only reload data if we're editing the currently displayed view
+                // Otherwise just reload the view list without reloading data
+                const skipDataReload = !isEditingCurrentView;
+                this.loadViews(this.context, skipDataReload);
               }
             );
           }}
@@ -773,6 +786,7 @@ class Views extends TableView {
       );
     } else if (this.state.deleteIndex !== null) {
       const name = this.state.views[this.state.deleteIndex]?.name || '';
+      const viewToDelete = this.state.views[this.state.deleteIndex];
       extras = (
         <DeleteViewDialog
           name={name}
@@ -786,7 +800,7 @@ class Views extends TableView {
               async () => {
                 if (this.viewPreferencesManager) {
                   try {
-                    await this.viewPreferencesManager.saveViews(this.context.applicationId, this.state.views);
+                    await this.viewPreferencesManager.deleteView(this.context.applicationId, viewToDelete.id, this.state.views);
                   } catch (error) {
                     console.error('Failed to save views:', error);
                     this.showNote('Failed to save view changes', true);

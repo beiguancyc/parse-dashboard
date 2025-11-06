@@ -1,3 +1,39 @@
+# [8.0.0](https://github.com/parse-community/parse-dashboard/compare/7.5.0...8.0.0) (2025-11-01)
+
+
+### Bug Fixes
+
+* Add missing major version increase of dashboard release ([#3005](https://github.com/parse-community/parse-dashboard/issues/3005)) ([5debb4d](https://github.com/parse-community/parse-dashboard/commit/5debb4dc143e4eebcfabb3e25cc882b6ea3594e7))
+* Cannot connect to server with error invalid header name ([#3006](https://github.com/parse-community/parse-dashboard/issues/3006)) ([ea4ec07](https://github.com/parse-community/parse-dashboard/commit/ea4ec071ae5d88f4cf6ba2c3b1da72509123b39c))
+* Currently displayed view reloads when editing and saving a different view ([#3002](https://github.com/parse-community/parse-dashboard/issues/3002)) ([794a35a](https://github.com/parse-community/parse-dashboard/commit/794a35ae265ed74f56634429d37e1b6826be3c45))
+* Dashboard config objects stored on server with public read / write access ([#2997](https://github.com/parse-community/parse-dashboard/issues/2997)) ([31a4639](https://github.com/parse-community/parse-dashboard/commit/31a4639bb44fa7223d669aa40580b2348420f522))
+* ESC key does not cancel editing in data browser cell ([#3001](https://github.com/parse-community/parse-dashboard/issues/3001)) ([d1d7241](https://github.com/parse-community/parse-dashboard/commit/d1d724169ae12489fb30eeca558e4cc926e4d851))
+* Filter text field in data browser partly looses focus when hitting enter key to apply filter ([#2992](https://github.com/parse-community/parse-dashboard/issues/2992)) ([e3085b9](https://github.com/parse-community/parse-dashboard/commit/e3085b9f62af359c04ce74498eb2029bce85a5d1))
+* Filter text field in data browser partly looses focus when selecting in drop-down element by hitting enter key to apply filter ([#2993](https://github.com/parse-community/parse-dashboard/issues/2993)) ([f4c17c7](https://github.com/parse-community/parse-dashboard/commit/f4c17c7d9046d9296c7cd9cb99109cad8c8a0e5b))
+* Info panel briefly shows cached media content from previously selected cell when using pre-fetch ([#3008](https://github.com/parse-community/parse-dashboard/issues/3008)) ([dd6a85e](https://github.com/parse-community/parse-dashboard/commit/dd6a85e4734adda9bc9a92d7bdfba2e7a061dd83))
+* Missing alert when changing data browser browser data while rows are selected ([#2994](https://github.com/parse-community/parse-dashboard/issues/2994)) ([6cabaa3](https://github.com/parse-community/parse-dashboard/commit/6cabaa36a95b0059ebbcd7b90a744fa9d0a403af))
+* Security upgrade parse from 3.5.1 to 7.0.1 ([#3003](https://github.com/parse-community/parse-dashboard/issues/3003)) ([5123fbf](https://github.com/parse-community/parse-dashboard/commit/5123fbf28f40d6a4e2e3030c2a0b810131397aea))
+* Security upgrade passport from 0.5.3 to 0.6.0 ([#3000](https://github.com/parse-community/parse-dashboard/issues/3000)) ([fbb5e6d](https://github.com/parse-community/parse-dashboard/commit/fbb5e6d9df5575519d414b98481afd96a4ae11d8))
+* Session management issue that causes malformed redirect URLs ([#3011](https://github.com/parse-community/parse-dashboard/issues/3011)) ([1649dd3](https://github.com/parse-community/parse-dashboard/commit/1649dd31129d9dc7153ffa116f57fbec216142f6))
+* Storing view on server creates view key with hashed view name instead of UUID ([#2995](https://github.com/parse-community/parse-dashboard/issues/2995)) ([7cb65f3](https://github.com/parse-community/parse-dashboard/commit/7cb65f360a2cd7f57782dad408c606671e271c7d))
+* Switching between browser tabs can cause illegible text color for config parameter value field ([#3010](https://github.com/parse-community/parse-dashboard/issues/3010)) ([77c5c67](https://github.com/parse-community/parse-dashboard/commit/77c5c67cfecedb20654eede3a167c65654e35b4a))
+* View table data may be retained when switching between views ([#2996](https://github.com/parse-community/parse-dashboard/issues/2996)) ([ddc91c9](https://github.com/parse-community/parse-dashboard/commit/ddc91c991f8ef6ea2695448cdb10edec71c8ad1a))
+
+### Features
+
+* Add `matches regex` filter to data browser replacing limited `string contains string` filter ([#2991](https://github.com/parse-community/parse-dashboard/issues/2991)) ([64a9f71](https://github.com/parse-community/parse-dashboard/commit/64a9f71bf89a818a7cf69573f652f554cac6a751))
+* Add info panel options `prefetchImage`, `prefetchVideo`, `prefetchAudio` to pre-fetch media content in the info panel ([#3009](https://github.com/parse-community/parse-dashboard/issues/3009)) ([6796c9e](https://github.com/parse-community/parse-dashboard/commit/6796c9e5f1fd0110100fb9814f55db4052ebb677))
+* Add Parse Server version compatibility detection ([#3004](https://github.com/parse-community/parse-dashboard/issues/3004)) ([9a7a60f](https://github.com/parse-community/parse-dashboard/commit/9a7a60fea3e76e66e5c6e5d39d3ad8fb02ba5e38))
+
+### Performance Improvements
+
+* Storing, deleting, modifying view in server storage now only affects the specific view instead of updating all views ([#2998](https://github.com/parse-community/parse-dashboard/issues/2998)) ([48cea3c](https://github.com/parse-community/parse-dashboard/commit/48cea3c06001fe74be2990bc65036b5111f943b2))
+
+
+### BREAKING CHANGES
+
+* This increases the required minimum version to Parse Server 7. ([5debb4d](5debb4d))
+
 # [7.5.0](https://github.com/parse-community/parse-dashboard/compare/7.4.0...7.5.0) (2025-10-02)
 
 
