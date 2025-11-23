@@ -1,3 +1,10 @@
+# [8.1.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/8.0.0...8.1.0-alpha.1) (2025-11-23)
+
+
+### Features
+
+* Add `cookieSessionStore` option to support multi-replica deployments ([#3016](https://github.com/parse-community/parse-dashboard/issues/3016)) ([3eb4b05](https://github.com/parse-community/parse-dashboard/commit/3eb4b05c5f3272e1b04f3e2e097f2e4775fdd63d))
+
 # [8.0.0-alpha.6](https://github.com/parse-community/parse-dashboard/compare/8.0.0-alpha.5...8.0.0-alpha.6) (2025-10-29)
 
 
