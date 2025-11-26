@@ -23,6 +23,9 @@ const BROWSER_SHOW_ROW_NUMBER = 'browserShowRowNumber';
 const AGGREGATION_PANEL_VISIBLE = 'aggregationPanelVisible';
 const BROWSER_SCROLL_TO_TOP = 'browserScrollToTop';
 const AGGREGATION_PANEL_AUTO_LOAD_FIRST_ROW = 'aggregationPanelAutoLoadFirstRow';
+const AGGREGATION_PANEL_SYNC_SCROLL = 'aggregationPanelSyncScroll';
+const AGGREGATION_PANEL_BATCH_NAVIGATE = 'aggregationPanelBatchNavigate';
+const AGGREGATION_PANEL_SHOW_CHECKBOX = 'aggregationPanelShowCheckbox';
 
 function formatValueForCopy(value, type) {
   if (value === undefined) {
@@ -89,6 +92,12 @@ export default class DataBrowser extends React.Component {
       window.localStorage?.getItem(BROWSER_SCROLL_TO_TOP) !== 'false';
     const storedAutoLoadFirstRow =
       window.localStorage?.getItem(AGGREGATION_PANEL_AUTO_LOAD_FIRST_ROW) === 'true';
+    const storedSyncPanelScroll =
+      window.localStorage?.getItem(AGGREGATION_PANEL_SYNC_SCROLL) !== 'false';
+    const storedBatchNavigate =
+      window.localStorage?.getItem(AGGREGATION_PANEL_BATCH_NAVIGATE) !== 'false';
+    const storedShowPanelCheckbox =
+      window.localStorage?.getItem(AGGREGATION_PANEL_SHOW_CHECKBOX) !== 'false';
     const hasAggregation =
       props.classwiseCloudFunctions?.[
         `${props.app.applicationId}${props.appName}`
@@ -115,8 +124,15 @@ export default class DataBrowser extends React.Component {
       showRowNumber: storedRowNumber,
       scrollToTop: storedScrollToTop,
       autoLoadFirstRow: storedAutoLoadFirstRow,
+      syncPanelScroll: storedSyncPanelScroll,
+      batchNavigate: storedBatchNavigate,
+      showPanelCheckbox: storedShowPanelCheckbox,
       prefetchCache: {},
       selectionHistory: [],
+      displayedObjectIds: [], // Array of object IDs currently displayed in the panel
+      panelCount: 1, // Number of panels to display
+      multiPanelData: {}, // Object mapping objectId to panel data
+      _objectsToFetch: [], // Temporary field for async fetch handling
     };
 
     this.handleResizeDiv = this.handleResizeDiv.bind(this);
@@ -140,9 +156,18 @@ export default class DataBrowser extends React.Component {
     this.setShowRowNumber = this.setShowRowNumber.bind(this);
     this.toggleScrollToTop = this.toggleScrollToTop.bind(this);
     this.toggleAutoLoadFirstRow = this.toggleAutoLoadFirstRow.bind(this);
+    this.toggleSyncPanelScroll = this.toggleSyncPanelScroll.bind(this);
+    this.toggleBatchNavigate = this.toggleBatchNavigate.bind(this);
+    this.toggleShowPanelCheckbox = this.toggleShowPanelCheckbox.bind(this);
     this.handleCellClick = this.handleCellClick.bind(this);
+    this.addPanel = this.addPanel.bind(this);
+    this.removePanel = this.removePanel.bind(this);
+    this.handlePanelScroll = this.handlePanelScroll.bind(this);
+    this.handleWrapperWheel = this.handleWrapperWheel.bind(this);
     this.saveOrderTimeout = null;
     this.aggregationPanelRef = React.createRef();
+    this.panelColumnRefs = [];
+    this.multiPanelWrapperRef = React.createRef();
   }
 
   componentWillReceiveProps(props) {
@@ -204,11 +229,19 @@ export default class DataBrowser extends React.Component {
   componentDidMount() {
     document.body.addEventListener('keydown', this.handleKey);
     window.addEventListener('resize', this.updateMaxWidth);
+    // Add wheel event listener for multi-panel scrolling
+    if (this.multiPanelWrapperRef.current && this.state.panelCount > 1 && this.state.syncPanelScroll) {
+      this.multiPanelWrapperRef.current.addEventListener('wheel', this.handleWrapperWheel, { passive: false });
+    }
   }
 
   componentWillUnmount() {
     document.body.removeEventListener('keydown', this.handleKey);
     window.removeEventListener('resize', this.updateMaxWidth);
+    // Remove wheel event listener
+    if (this.multiPanelWrapperRef.current) {
+      this.multiPanelWrapperRef.current.removeEventListener('wheel', this.handleWrapperWheel);
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -258,6 +291,34 @@ export default class DataBrowser extends React.Component {
     ) {
       if (this.state.scrollToTop) {
         this.aggregationPanelRef.current.scrollTop = 0;
+      }
+    }
+
+    // Store the fetched panel data in multiPanelData when it changes
+    if (
+      this.props.AggregationPanelData !== prevProps.AggregationPanelData &&
+      this.state.selectedObjectId &&
+      Object.keys(this.props.AggregationPanelData).length > 0
+    ) {
+      this.setState(prev => ({
+        multiPanelData: {
+          ...prev.multiPanelData,
+          [this.state.selectedObjectId]: this.props.AggregationPanelData
+        }
+      }));
+    }
+
+    // Manage wheel event listener based on state changes
+    const prevNeedsListener = prevState.panelCount > 1 && prevState.syncPanelScroll;
+    const nowNeedsListener = this.state.panelCount > 1 && this.state.syncPanelScroll;
+
+    if (prevNeedsListener !== nowNeedsListener && this.multiPanelWrapperRef.current) {
+      if (nowNeedsListener) {
+        // Add listener
+        this.multiPanelWrapperRef.current.addEventListener('wheel', this.handleWrapperWheel, { passive: false });
+      } else {
+        // Remove listener
+        this.multiPanelWrapperRef.current.removeEventListener('wheel', this.handleWrapperWheel);
       }
     }
   }
@@ -570,7 +631,9 @@ export default class DataBrowser extends React.Component {
         // Up - standalone (move to the previous row)
         // or with ctrl/meta (excel style - move to the first row)
         const prevObjectID = this.state.selectedObjectId;
-        const newRow = e.ctrlKey || e.metaKey ? 0 : Math.max(this.state.current.row - 1, 0);
+        // Calculate step size based on batch navigation mode
+        const stepSize = this.state.panelCount > 1 && this.state.batchNavigate ? this.state.panelCount : 1;
+        const newRow = e.ctrlKey || e.metaKey ? 0 : Math.max(this.state.current.row - stepSize, 0);
         this.setState({
           current: {
             row: newRow,
@@ -613,10 +676,12 @@ export default class DataBrowser extends React.Component {
         // Down - standalone (move to the next row)
         // or with ctrl/meta (excel style - move to the last row)
         const prevObjectID = this.state.selectedObjectId;
+        // Calculate step size based on batch navigation mode
+        const stepSizeDown = this.state.panelCount > 1 && this.state.batchNavigate ? this.state.panelCount : 1;
         const newRow =
           e.ctrlKey || e.metaKey
             ? this.props.data.length - 1
-            : Math.min(this.state.current.row + 1, this.props.data.length - 1);
+            : Math.min(this.state.current.row + stepSizeDown, this.props.data.length - 1);
         this.setState({
           current: {
             row: newRow,
@@ -720,9 +785,67 @@ export default class DataBrowser extends React.Component {
           if (history.length > 3) {
             history.shift();
           }
-          return { selectedObjectId, selectionHistory: history };
+
+          // Check if the new object is already displayed in the panel
+          let newDisplayedObjectIds = [...prevState.displayedObjectIds];
+          const newMultiPanelData = { ...prevState.multiPanelData };
+          const objectsToFetch = [];
+
+          if (prevState.panelCount > 1 && selectedObjectId) {
+            // If the selected object is not in the displayed list, update displayed objects
+            if (!newDisplayedObjectIds.includes(selectedObjectId)) {
+              const currentIndex = this.props.data?.findIndex(obj => obj.id === selectedObjectId);
+              if (currentIndex !== -1) {
+                const { prefetchCache } = prevState;
+                const { prefetchStale } = this.getPrefetchSettings();
+
+                // Calculate the starting index for the new batch
+                // Always position the selected object at the START of the batch for consistency
+                const startIndex = currentIndex;
+
+                // Build the new batch of displayed objects
+                newDisplayedObjectIds = [];
+                for (let i = 0; i < prevState.panelCount && startIndex + i < this.props.data.length; i++) {
+                  const objectId = this.props.data[startIndex + i].id;
+                  newDisplayedObjectIds.push(objectId);
+
+                  // Check if data is already available
+                  if (!newMultiPanelData[objectId]) {
+                    const cached = prefetchCache[objectId];
+                    if (cached && (!prefetchStale || (Date.now() - cached.timestamp) / 1000 < prefetchStale)) {
+                      // Use cached data immediately
+                      newMultiPanelData[objectId] = cached.data;
+                    } else {
+                      // Mark for fetching
+                      objectsToFetch.push({ objectId, delay: i * 100 });
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          return {
+            selectedObjectId,
+            selectionHistory: history,
+            displayedObjectIds: newDisplayedObjectIds,
+            multiPanelData: newMultiPanelData,
+            _objectsToFetch: objectsToFetch // Temporary field to handle after setState
+          };
         },
-        () => this.handlePrefetch()
+        () => {
+          // Fetch any objects that weren't in cache
+          if (this.state._objectsToFetch && this.state._objectsToFetch.length > 0) {
+            this.state._objectsToFetch.forEach(({ objectId, delay }) => {
+              setTimeout(() => {
+                this.fetchDataForMultiPanel(objectId);
+              }, delay);
+            });
+            // Clean up temporary field
+            this.setState({ _objectsToFetch: [] });
+          }
+          this.handlePrefetch();
+        }
       );
     }
   }
@@ -757,6 +880,177 @@ export default class DataBrowser extends React.Component {
       const newAutoLoadFirstRow = !prevState.autoLoadFirstRow;
       window.localStorage?.setItem(AGGREGATION_PANEL_AUTO_LOAD_FIRST_ROW, newAutoLoadFirstRow);
       return { autoLoadFirstRow: newAutoLoadFirstRow };
+    });
+  }
+
+  toggleSyncPanelScroll() {
+    this.setState(prevState => {
+      const newSyncPanelScroll = !prevState.syncPanelScroll;
+      window.localStorage?.setItem(AGGREGATION_PANEL_SYNC_SCROLL, newSyncPanelScroll);
+      return { syncPanelScroll: newSyncPanelScroll };
+    });
+  }
+
+  toggleBatchNavigate() {
+    this.setState(prevState => {
+      const newBatchNavigate = !prevState.batchNavigate;
+      window.localStorage?.setItem(AGGREGATION_PANEL_BATCH_NAVIGATE, newBatchNavigate);
+      return { batchNavigate: newBatchNavigate };
+    });
+  }
+
+  toggleShowPanelCheckbox() {
+    this.setState(prevState => {
+      const newShowPanelCheckbox = !prevState.showPanelCheckbox;
+      window.localStorage?.setItem(AGGREGATION_PANEL_SHOW_CHECKBOX, String(newShowPanelCheckbox));
+      return { showPanelCheckbox: newShowPanelCheckbox };
+    });
+  }
+
+  handlePanelScroll(event, index) {
+    if (!this.state.syncPanelScroll || this.state.panelCount <= 1) {
+      return;
+    }
+
+    // Sync scroll position to all other panel columns
+    const scrollTop = event.target.scrollTop;
+    this.panelColumnRefs.forEach((ref, i) => {
+      if (i !== index && ref && ref.current) {
+        ref.current.scrollTop = scrollTop;
+      }
+    });
+  }
+
+  handleWrapperWheel(event) {
+    if (!this.state.syncPanelScroll || this.state.panelCount <= 1) {
+      return;
+    }
+
+    // Prevent default scrolling
+    event.preventDefault();
+
+    // Apply scroll to all columns
+    const delta = event.deltaY;
+    this.panelColumnRefs.forEach((ref) => {
+      if (ref && ref.current) {
+        ref.current.scrollTop += delta;
+      }
+    });
+  }
+
+  fetchDataForMultiPanel(objectId) {
+    // Fetch data for a specific object and store it in both prefetchCache and multiPanelData
+    const { className, app } = this.props;
+    const { prefetchCache } = this.state;
+    const { prefetchStale } = this.getPrefetchSettings();
+
+    const cached = prefetchCache[objectId];
+    if (cached && (!prefetchStale || (Date.now() - cached.timestamp) / 1000 < prefetchStale)) {
+      // Use cached data
+      this.setState(prev => ({
+        multiPanelData: {
+          ...prev.multiPanelData,
+          [objectId]: cached.data
+        }
+      }));
+    } else {
+      // Fetch fresh data
+      const cloudCodeFunction =
+        this.props.classwiseCloudFunctions?.[
+          `${app.applicationId}${this.props.appName}`
+        ]?.[className]?.[0]?.cloudCodeFunction;
+
+      if (!cloudCodeFunction) {
+        return;
+      }
+
+      const params = {
+        object: Parse.Object.extend(className)
+          .createWithoutData(objectId)
+          .toPointer(),
+      };
+      const options = { useMasterKey: true };
+
+      Parse.Cloud.run(cloudCodeFunction, params, options).then(result => {
+        // Store in both prefetchCache and multiPanelData
+        this.setState(prev => ({
+          prefetchCache: {
+            ...prev.prefetchCache,
+            [objectId]: { data: result, timestamp: Date.now() }
+          },
+          multiPanelData: {
+            ...prev.multiPanelData,
+            [objectId]: result
+          }
+        }));
+      }).catch(error => {
+        console.error(`Failed to fetch panel data for ${objectId}:`, error);
+      });
+    }
+  }
+
+  addPanel() {
+    const currentIndex = this.props.data?.findIndex(obj => obj.id === this.state.selectedObjectId);
+    const newPanelCount = this.state.panelCount + 1;
+    const newDisplayedObjectIds = [];
+
+    if (currentIndex !== -1 && currentIndex !== undefined) {
+      // First, ensure current object data is in multiPanelData
+      const currentObjectData = { ...this.state.multiPanelData };
+      if (this.state.selectedObjectId && !currentObjectData[this.state.selectedObjectId] &&
+          Object.keys(this.props.AggregationPanelData).length > 0) {
+        currentObjectData[this.state.selectedObjectId] = this.props.AggregationPanelData;
+      }
+
+      const { prefetchCache } = this.state;
+      const { prefetchStale } = this.getPrefetchSettings();
+      const objectsToFetch = [];
+
+      for (let i = 0; i < newPanelCount && currentIndex + i < this.props.data.length; i++) {
+        const objectId = this.props.data[currentIndex + i].id;
+        newDisplayedObjectIds.push(objectId);
+
+        // Check if data is already available
+        if (!currentObjectData[objectId]) {
+          const cached = prefetchCache[objectId];
+          if (cached && (!prefetchStale || (Date.now() - cached.timestamp) / 1000 < prefetchStale)) {
+            // Use cached data immediately
+            currentObjectData[objectId] = cached.data;
+          } else {
+            // Mark for fetching
+            objectsToFetch.push(objectId);
+          }
+        }
+      }
+
+      // Update state with all available data
+      this.setState({
+        panelCount: newPanelCount,
+        displayedObjectIds: newDisplayedObjectIds,
+        multiPanelData: currentObjectData
+      });
+
+      // Fetch missing data asynchronously
+      objectsToFetch.forEach((objectId, i) => {
+        setTimeout(() => {
+          this.fetchDataForMultiPanel(objectId);
+        }, i * 100);
+      });
+    }
+  }
+
+  removePanel() {
+    this.setState(prevState => {
+      if (prevState.panelCount <= 1) {
+        return {};
+      }
+      const newPanelCount = prevState.panelCount - 1;
+      // Remove the last displayed object
+      const newDisplayedObjectIds = prevState.displayedObjectIds.slice(0, -1);
+      return {
+        panelCount: newPanelCount,
+        displayedObjectIds: newDisplayedObjectIds
+      };
     });
   }
 
@@ -798,15 +1092,36 @@ export default class DataBrowser extends React.Component {
       return;
     }
     const [a, b, c] = history.slice(-3);
-    if (a + 1 === b && b + 1 === c) {
+    // Detect step size from the last two selections
+    const stepAB = b - a;
+    const stepBC = c - b;
+    // Check if we have a consistent navigation pattern (same step size)
+    if (stepAB === stepBC && stepAB > 0) {
+      // Prefetch ahead based on the detected step size
+      const stepSize = stepAB;
+      const panelCount = this.state.panelCount;
+
+      // When in multi-panel mode, prefetch all objects in the upcoming batches
       for (
         let i = 1;
-        i <= prefetchObjects && c + i < this.props.data.length;
+        i <= prefetchObjects && c + (i * stepSize) < this.props.data.length;
         i++
       ) {
-        const objId = this.props.data[c + i].id;
-        if (!cache[objId]) {
-          this.prefetchObject(objId);
+        // For each step ahead, prefetch the main object
+        const mainObjId = this.props.data[c + (i * stepSize)].id;
+        if (!Object.prototype.hasOwnProperty.call(cache, mainObjId)) {
+          this.prefetchObject(mainObjId);
+        }
+
+        // If in multi-panel mode, also prefetch the other objects that would be displayed in the batch
+        if (panelCount > 1) {
+          const batchStartIndex = c + (i * stepSize);
+          for (let j = 1; j < panelCount && batchStartIndex + j < this.props.data.length; j++) {
+            const batchObjId = this.props.data[batchStartIndex + j].id;
+            if (!Object.prototype.hasOwnProperty.call(cache, batchObjId)) {
+              this.prefetchObject(batchObjId);
+            }
+          }
         }
       }
     }
@@ -923,6 +1238,13 @@ export default class DataBrowser extends React.Component {
     ) {
       this.props.setAggregationPanelData(cached.data);
       this.props.setLoadingInfoPanel(false);
+      // Also store in multiPanelData for multi-panel display
+      this.setState(prev => ({
+        multiPanelData: {
+          ...prev.multiPanelData,
+          [objectId]: cached.data
+        }
+      }));
     } else {
       if (cached) {
         this.setState(prev => {
@@ -1089,18 +1411,79 @@ export default class DataBrowser extends React.Component {
                 className={styles.aggregationPanelContainer}
                 ref={this.aggregationPanelRef}
               >
-                <AggregationPanel
-                  data={this.props.AggregationPanelData}
-                  isLoadingCloudFunction={this.props.isLoadingCloudFunction}
-                  showAggregatedData={this.state.showAggregatedData}
-                  errorAggregatedData={this.props.errorAggregatedData}
-                  showNote={this.props.showNote}
-                  setErrorAggregatedData={this.props.setErrorAggregatedData}
-                  setSelectedObjectId={this.setSelectedObjectId}
-                  selectedObjectId={this.state.selectedObjectId}
-                  appName={this.props.appName}
-                  className={this.props.className}
-                />
+                {this.state.panelCount > 1 ? (
+                  <div
+                    className={styles.multiPanelWrapper}
+                    ref={this.multiPanelWrapperRef}
+                  >
+                    {(() => {
+                      // Initialize refs array if needed
+                      if (this.panelColumnRefs.length !== this.state.displayedObjectIds.length) {
+                        this.panelColumnRefs = this.state.displayedObjectIds.map(() => React.createRef());
+                      }
+                      return this.state.displayedObjectIds.map((objectId, index) => {
+                        const panelData = this.state.multiPanelData[objectId] || {};
+                        const isLoading = objectId === this.state.selectedObjectId && this.props.isLoadingCloudFunction;
+                        const isRowSelected = this.props.selection[objectId];
+                        return (
+                          <React.Fragment key={objectId}>
+                            <div
+                              className={styles.panelColumn}
+                              ref={this.panelColumnRefs[index]}
+                              onScroll={(e) => this.handlePanelScroll(e, index)}
+                            >
+                              {this.state.showPanelCheckbox && (
+                                <div
+                                  className={styles.panelHeader}
+                                  onClick={() => {
+                                    this.props.selectRow(objectId, !isRowSelected);
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={!!isRowSelected}
+                                    readOnly
+                                  />
+                                </div>
+                              )}
+                              <AggregationPanel
+                                data={panelData}
+                                isLoadingCloudFunction={isLoading}
+                                showAggregatedData={true}
+                                errorAggregatedData={objectId === this.state.selectedObjectId ? this.props.errorAggregatedData : {}}
+                                showNote={this.props.showNote}
+                                setErrorAggregatedData={this.props.setErrorAggregatedData}
+                                setSelectedObjectId={this.setSelectedObjectId}
+                                selectedObjectId={objectId}
+                                appName={this.props.appName}
+                                className={this.props.className}
+                              />
+                            </div>
+                            {index < this.state.displayedObjectIds.length - 1 && (
+                              <div className={styles.panelSeparator} />
+                            )}
+                          </React.Fragment>
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <AggregationPanel
+                    data={this.props.AggregationPanelData}
+                    isLoadingCloudFunction={this.props.isLoadingCloudFunction}
+                    showAggregatedData={this.state.showAggregatedData}
+                    errorAggregatedData={this.props.errorAggregatedData}
+                    showNote={this.props.showNote}
+                    setErrorAggregatedData={this.props.setErrorAggregatedData}
+                    setSelectedObjectId={this.setSelectedObjectId}
+                    selectedObjectId={this.state.selectedObjectId}
+                    appName={this.props.appName}
+                    className={this.props.className}
+                  />
+                )}
               </div>
             </ResizableBox>
           )}
@@ -1133,12 +1516,21 @@ export default class DataBrowser extends React.Component {
           allClassesSchema={this.state.allClassesSchema}
           togglePanel={this.togglePanelVisibility}
           isPanelVisible={this.state.isPanelVisible}
+          addPanel={this.addPanel}
+          removePanel={this.removePanel}
+          panelCount={this.state.panelCount}
           appId={this.props.app.applicationId}
           appName={this.props.appName}
           scrollToTop={this.state.scrollToTop}
           toggleScrollToTop={this.toggleScrollToTop}
           autoLoadFirstRow={this.state.autoLoadFirstRow}
           toggleAutoLoadFirstRow={this.toggleAutoLoadFirstRow}
+          syncPanelScroll={this.state.syncPanelScroll}
+          toggleSyncPanelScroll={this.toggleSyncPanelScroll}
+          batchNavigate={this.state.batchNavigate}
+          toggleBatchNavigate={this.toggleBatchNavigate}
+          showPanelCheckbox={this.state.showPanelCheckbox}
+          toggleShowPanelCheckbox={this.toggleShowPanelCheckbox}
           {...other}
         />
 
