@@ -1,3 +1,10 @@
+# [8.1.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.1...8.1.0-alpha.2) (2025-11-26)
+
+
+### Features
+
+* Add displaying multiple info panels and batch navigation ([#3020](https://github.com/parse-community/parse-dashboard/issues/3020)) ([7ac3186](https://github.com/parse-community/parse-dashboard/commit/7ac31863bc125acaa4be167703a85b06e7e0019f))
+
 # [8.1.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/8.0.0...8.1.0-alpha.1) (2025-11-23)
 
 
