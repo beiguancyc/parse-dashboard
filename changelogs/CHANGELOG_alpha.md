@@ -1,3 +1,10 @@
+# [8.1.0-alpha.3](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.2...8.1.0-alpha.3) (2025-11-26)
+
+
+### Bug Fixes
+
+* Sync-scrolling multiple panels jumps to bottom of shortest panel when scrolling up ([#3023](https://github.com/parse-community/parse-dashboard/issues/3023)) ([3f85f89](https://github.com/parse-community/parse-dashboard/commit/3f85f8944a8b5100956e2c4390f2d8a6bb0ed9cf))
+
 # [8.1.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.1...8.1.0-alpha.2) (2025-11-26)
 
 
