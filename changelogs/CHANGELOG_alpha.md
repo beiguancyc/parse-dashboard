@@ -1,3 +1,10 @@
+# [8.1.0-alpha.6](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.5...8.1.0-alpha.6) (2025-11-27)
+
+
+### Bug Fixes
+
+* No individual data loading indicators when displaying multiple info panels ([#3026](https://github.com/parse-community/parse-dashboard/issues/3026)) ([5ca8218](https://github.com/parse-community/parse-dashboard/commit/5ca82188428b017f4a3d4d34af2eaa2b5e53075f))
+
 # [8.1.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.4...8.1.0-alpha.5) (2025-11-27)
 
 
