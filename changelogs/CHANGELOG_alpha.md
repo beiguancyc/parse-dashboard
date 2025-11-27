@@ -1,3 +1,10 @@
+# [8.1.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.4...8.1.0-alpha.5) (2025-11-27)
+
+
+### Features
+
+* Automatically resize info panel sidebar width when adding or removing panels ([#3025](https://github.com/parse-community/parse-dashboard/issues/3025)) ([1032301](https://github.com/parse-community/parse-dashboard/commit/1032301246f1763f77e328f650b16101194f7f8f))
+
 # [8.1.0-alpha.4](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.3...8.1.0-alpha.4) (2025-11-26)
 
 
