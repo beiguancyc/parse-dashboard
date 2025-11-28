@@ -1,3 +1,10 @@
+# [8.1.0-alpha.9](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.8...8.1.0-alpha.9) (2025-11-28)
+
+
+### Bug Fixes
+
+* Selected saved filter is not expanded in sidebar when reloading browser page ([#3029](https://github.com/parse-community/parse-dashboard/issues/3029)) ([2e7850e](https://github.com/parse-community/parse-dashboard/commit/2e7850e7139e12e0cbaff05dccaade9c51e9f058))
+
 # [8.1.0-alpha.8](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.7...8.1.0-alpha.8) (2025-11-28)
 
 
