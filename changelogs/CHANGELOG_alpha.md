@@ -1,3 +1,10 @@
+# [8.1.0-alpha.8](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.7...8.1.0-alpha.8) (2025-11-28)
+
+
+### Features
+
+* Remember selected column when navigating between saved filters of a class with auto-load first row enabled ([#3028](https://github.com/parse-community/parse-dashboard/issues/3028)) ([964584c](https://github.com/parse-community/parse-dashboard/commit/964584cb2e1a6d318c1fac3087118e1ebe5bf157))
+
 # [8.1.0-alpha.7](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.6...8.1.0-alpha.7) (2025-11-28)
 
 
