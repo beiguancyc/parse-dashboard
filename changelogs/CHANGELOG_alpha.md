@@ -1,3 +1,10 @@
+# [8.1.0-alpha.10](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.9...8.1.0-alpha.10) (2025-11-30)
+
+
+### Features
+
+* Remember info panel width and count across browser sessions ([#3031](https://github.com/parse-community/parse-dashboard/issues/3031)) ([d188030](https://github.com/parse-community/parse-dashboard/commit/d188030ef723b1aab80eece34b6b1590336b5d36))
+
 # [8.1.0-alpha.9](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.8...8.1.0-alpha.9) (2025-11-28)
 
 
