@@ -1,3 +1,10 @@
+# [8.1.0-alpha.11](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.10...8.1.0-alpha.11) (2025-12-01)
+
+
+### Bug Fixes
+
+* Info panel may show stale data of previous objects when refreshing the data table or navigating between classes ([#3036](https://github.com/parse-community/parse-dashboard/issues/3036)) ([2565f0e](https://github.com/parse-community/parse-dashboard/commit/2565f0e30e0bb4dbc5c67995d141935b81a40396))
+
 # [8.1.0-alpha.10](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.9...8.1.0-alpha.10) (2025-11-30)
 
 
