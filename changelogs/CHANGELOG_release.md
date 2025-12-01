@@ -1,3 +1,25 @@
+# [8.1.0](https://github.com/parse-community/parse-dashboard/compare/8.0.0...8.1.0) (2025-12-01)
+
+
+### Bug Fixes
+
+* Data browser export triggers confirmation dialog for navigating with selected rows ([#3037](https://github.com/parse-community/parse-dashboard/issues/3037)) ([c6334cd](https://github.com/parse-community/parse-dashboard/commit/c6334cde97e7c2c4b0bc776448a4301d8bd2fbeb))
+* Info panel data not reloading when clicking refresh button in data browser ([#3027](https://github.com/parse-community/parse-dashboard/issues/3027)) ([8f91d15](https://github.com/parse-community/parse-dashboard/commit/8f91d15e2553f906ff8c078df58ee523a3d845a9))
+* Info panel may show stale data of previous objects when refreshing the data table or navigating between classes ([#3036](https://github.com/parse-community/parse-dashboard/issues/3036)) ([2565f0e](https://github.com/parse-community/parse-dashboard/commit/2565f0e30e0bb4dbc5c67995d141935b81a40396))
+* No individual data loading indicators when displaying multiple info panels ([#3026](https://github.com/parse-community/parse-dashboard/issues/3026)) ([5ca8218](https://github.com/parse-community/parse-dashboard/commit/5ca82188428b017f4a3d4d34af2eaa2b5e53075f))
+* Selected saved filter is not expanded in sidebar when reloading browser page ([#3029](https://github.com/parse-community/parse-dashboard/issues/3029)) ([2e7850e](https://github.com/parse-community/parse-dashboard/commit/2e7850e7139e12e0cbaff05dccaade9c51e9f058))
+* Sync-scrolling multiple panels jumps to bottom of shortest panel when scrolling up ([#3023](https://github.com/parse-community/parse-dashboard/issues/3023)) ([3f85f89](https://github.com/parse-community/parse-dashboard/commit/3f85f8944a8b5100956e2c4390f2d8a6bb0ed9cf))
+* Sync-scrolling multiple panels stops at bottom of shortest panel when scrolling down ([#3024](https://github.com/parse-community/parse-dashboard/issues/3024)) ([bf46938](https://github.com/parse-community/parse-dashboard/commit/bf46938feaaf9793f8525a726510ea6d5b931dcf))
+
+### Features
+
+* Add `cookieSessionStore` option to support multi-replica deployments ([#3016](https://github.com/parse-community/parse-dashboard/issues/3016)) ([3eb4b05](https://github.com/parse-community/parse-dashboard/commit/3eb4b05c5f3272e1b04f3e2e097f2e4775fdd63d))
+* Add displaying multiple info panels and batch navigation ([#3020](https://github.com/parse-community/parse-dashboard/issues/3020)) ([7ac3186](https://github.com/parse-community/parse-dashboard/commit/7ac31863bc125acaa4be167703a85b06e7e0019f))
+* Automatically resize info panel sidebar width when adding or removing panels ([#3025](https://github.com/parse-community/parse-dashboard/issues/3025)) ([1032301](https://github.com/parse-community/parse-dashboard/commit/1032301246f1763f77e328f650b16101194f7f8f))
+* Remember info panel width and count across browser sessions ([#3031](https://github.com/parse-community/parse-dashboard/issues/3031)) ([d188030](https://github.com/parse-community/parse-dashboard/commit/d188030ef723b1aab80eece34b6b1590336b5d36))
+* Remember selected column when navigating between saved filters of a class with auto-load first row enabled ([#3028](https://github.com/parse-community/parse-dashboard/issues/3028)) ([964584c](https://github.com/parse-community/parse-dashboard/commit/964584cb2e1a6d318c1fac3087118e1ebe5bf157))
+* Upgrade to parse 7.1.2 ([#3038](https://github.com/parse-community/parse-dashboard/issues/3038)) ([c6c1787](https://github.com/parse-community/parse-dashboard/commit/c6c1787fbacd50dcb9d1b613d73968260268993d))
+
 # [8.0.0](https://github.com/parse-community/parse-dashboard/compare/7.5.0...8.0.0) (2025-11-01)
 
 
