@@ -1,3 +1,10 @@
+# [8.1.0-alpha.13](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.12...8.1.0-alpha.13) (2025-12-01)
+
+
+### Features
+
+* Upgrade to parse 7.1.2 ([#3038](https://github.com/parse-community/parse-dashboard/issues/3038)) ([c6c1787](https://github.com/parse-community/parse-dashboard/commit/c6c1787fbacd50dcb9d1b613d73968260268993d))
+
 # [8.1.0-alpha.12](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.11...8.1.0-alpha.12) (2025-12-01)
 
 
