@@ -263,6 +263,40 @@ export default class DataBrowser extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
+    // Clear panels immediately when className changes
+    if (
+      this.props.className !== prevProps.className &&
+      this.state.isPanelVisible
+    ) {
+      // Clear panel data and selection to show "No object selected"
+      this.props.setAggregationPanelData({});
+      this.props.setLoadingInfoPanel(false);
+      this.setState({
+        selectedObjectId: undefined,
+        showAggregatedData: true, // Keep true to show "No object selected" message
+        multiPanelData: {},
+        displayedObjectIds: []
+      });
+    }
+
+    // Clear panels when data becomes null (filter change, class change, etc.)
+    if (
+      this.props.data === null &&
+      prevProps.data !== null &&
+      this.state.isPanelVisible &&
+      this.state.selectedObjectId !== undefined
+    ) {
+      // Clear panel data and selection to show "No object selected"
+      this.props.setAggregationPanelData({});
+      this.props.setLoadingInfoPanel(false);
+      this.setState({
+        selectedObjectId: undefined,
+        showAggregatedData: true, // Keep true to show "No object selected" message
+        multiPanelData: {},
+        displayedObjectIds: []
+      });
+    }
+
     if (
       this.state.current === null &&
       this.state.selectedObjectId !== undefined &&
@@ -270,7 +304,7 @@ export default class DataBrowser extends React.Component {
     ) {
       this.setState({
         selectedObjectId: undefined,
-        showAggregatedData: false,
+        showAggregatedData: true, // Keep true to show "No object selected" message
       });
       this.props.setAggregationPanelData({});
       if (this.props.errorAggregatedData != {}) {
@@ -398,42 +432,34 @@ export default class DataBrowser extends React.Component {
   }
 
   async handleRefresh() {
-    const shouldReload = await this.props.onRefresh();
+    // If panel is visible, clear it immediately and show "No object selected"
+    if (this.state.isPanelVisible) {
+      // Clear the cache for all selected objects so they will be refreshed
+      const newPrefetchCache = { ...this.state.prefetchCache };
 
-    // If panel is visible and we have selected objects, refresh their data
-    if (shouldReload && this.state.isPanelVisible) {
-      // Refresh current selected object
       if (this.state.selectedObjectId) {
-        // Clear from cache to force reload
-        this.setState(prev => {
-          const n = { ...prev.prefetchCache };
-          delete n[this.state.selectedObjectId];
-          return { prefetchCache: n };
-        }, () => {
-          this.handleCallCloudFunction(
-            this.state.selectedObjectId,
-            this.props.className,
-            this.props.app.applicationId
-          );
-        });
+        delete newPrefetchCache[this.state.selectedObjectId];
       }
 
-      // Refresh other displayed objects if in multi-panel mode
       if (this.state.panelCount > 1 && this.state.displayedObjectIds.length > 0) {
         this.state.displayedObjectIds.forEach(objectId => {
-          if (objectId !== this.state.selectedObjectId) {
-            // Clear from cache
-            this.setState(prev => {
-              const n = { ...prev.prefetchCache };
-              delete n[objectId];
-              return { prefetchCache: n };
-            }, () => {
-              this.fetchDataForMultiPanel(objectId);
-            });
-          }
+          delete newPrefetchCache[objectId];
         });
       }
+
+      // Clear panel data immediately (shows "No object selected" message)
+      this.props.setAggregationPanelData({});
+      this.props.setLoadingInfoPanel(false);
+      this.setState({
+        prefetchCache: newPrefetchCache,
+        multiPanelData: {}, // Clear multi-panel data as well
+        displayedObjectIds: [], // Clear displayed object IDs
+        selectedObjectId: undefined, // Clear selection to show "No object selected"
+        showAggregatedData: true, // Keep true to show "No object selected" message
+      });
     }
+
+    await this.props.onRefresh();
   }
 
   togglePanelVisibility() {
@@ -1552,6 +1578,24 @@ export default class DataBrowser extends React.Component {
                     ref={this.setMultiPanelWrapperRef}
                   >
                     {(() => {
+                      // If no objects are displayed, show a single panel with "No object selected"
+                      if (this.state.displayedObjectIds.length === 0) {
+                        return (
+                          <AggregationPanel
+                            data={{}}
+                            isLoadingCloudFunction={false}
+                            showAggregatedData={true}
+                            errorAggregatedData={{}}
+                            showNote={this.props.showNote}
+                            setErrorAggregatedData={this.props.setErrorAggregatedData}
+                            setSelectedObjectId={this.setSelectedObjectId}
+                            selectedObjectId={undefined}
+                            appName={this.props.appName}
+                            className={this.props.className}
+                          />
+                        );
+                      }
+
                       // Initialize refs array if needed
                       if (this.panelColumnRefs.length !== this.state.displayedObjectIds.length) {
                         this.panelColumnRefs = this.state.displayedObjectIds.map(() => React.createRef());
