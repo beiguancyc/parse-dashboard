@@ -1,3 +1,10 @@
+# [8.1.0-alpha.12](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.11...8.1.0-alpha.12) (2025-12-01)
+
+
+### Bug Fixes
+
+* Data browser export triggers confirmation dialog for navigating with selected rows ([#3037](https://github.com/parse-community/parse-dashboard/issues/3037)) ([c6334cd](https://github.com/parse-community/parse-dashboard/commit/c6334cde97e7c2c4b0bc776448a4301d8bd2fbeb))
+
 # [8.1.0-alpha.11](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.10...8.1.0-alpha.11) (2025-12-01)
 
 
