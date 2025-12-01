@@ -23,3 +23,69 @@
     overflow: auto;
     background-color: #fefafb;
 }
+
+.multiPanelWrapper {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+}
+
+.panelColumn {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+
+    /* Custom narrow scrollbar for webkit browsers */
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar:hover {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.4);
+    }
+
+    /* Firefox scrollbar support */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.panelSeparator {
+    width: 0px;
+    background-color: #ebebeb;
+    flex-shrink: 0;
+}
+
+.panelHeader {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #67637a;
+    border-left: 1px solid #878396;
+    padding: 8px 8px 6px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        pointer-events: none;
+        width: 16px;
+        height: 16px;
+    }
+}
