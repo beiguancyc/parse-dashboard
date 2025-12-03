@@ -1,3 +1,10 @@
+## [8.1.1-alpha.1](https://github.com/parse-community/parse-dashboard/compare/8.1.0...8.1.1-alpha.1) (2025-12-03)
+
+
+### Bug Fixes
+
+* Info panel not refreshing on script execution ([#3040](https://github.com/parse-community/parse-dashboard/issues/3040)) ([f57e7e2](https://github.com/parse-community/parse-dashboard/commit/f57e7e2509827757bd51bf452bcd00e88066deb8))
+
 # [8.1.0-alpha.13](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.12...8.1.0-alpha.13) (2025-12-01)
 
 
