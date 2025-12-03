@@ -1,3 +1,10 @@
+# [8.2.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/8.1.1-alpha.1...8.2.0-alpha.1) (2025-12-03)
+
+
+### Features
+
+* Add Node 24 support ([#3041](https://github.com/parse-community/parse-dashboard/issues/3041)) ([8cf2735](https://github.com/parse-community/parse-dashboard/commit/8cf2735d048e8cdce52c08813a1c91518447cf0d))
+
 ## [8.1.1-alpha.1](https://github.com/parse-community/parse-dashboard/compare/8.1.0...8.1.1-alpha.1) (2025-12-03)
 
 
