@@ -263,29 +263,17 @@ export default class DataBrowser extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    // Clear panels immediately when className changes
-    if (
-      this.props.className !== prevProps.className &&
-      this.state.isPanelVisible
-    ) {
-      // Clear panel data and selection to show "No object selected"
-      this.props.setAggregationPanelData({});
-      this.props.setLoadingInfoPanel(false);
-      this.setState({
-        selectedObjectId: undefined,
-        showAggregatedData: true, // Keep true to show "No object selected" message
-        multiPanelData: {},
-        displayedObjectIds: []
-      });
-    }
+    // Clear panels when className changes, data becomes null, or data reloads
+    const shouldClearPanels = this.state.isPanelVisible && (
+      // Class changed
+      this.props.className !== prevProps.className ||
+      // Data became null (filter change, loading state)
+      (this.props.data === null && prevProps.data !== null) ||
+      // Data reloaded (script execution, refresh)
+      (this.props.data !== null && prevProps.data !== null && this.props.data !== prevProps.data)
+    );
 
-    // Clear panels when data becomes null (filter change, class change, etc.)
-    if (
-      this.props.data === null &&
-      prevProps.data !== null &&
-      this.state.isPanelVisible &&
-      this.state.selectedObjectId !== undefined
-    ) {
+    if (shouldClearPanels) {
       // Clear panel data and selection to show "No object selected"
       this.props.setAggregationPanelData({});
       this.props.setLoadingInfoPanel(false);
@@ -293,7 +281,8 @@ export default class DataBrowser extends React.Component {
         selectedObjectId: undefined,
         showAggregatedData: true, // Keep true to show "No object selected" message
         multiPanelData: {},
-        displayedObjectIds: []
+        displayedObjectIds: [],
+        prefetchCache: {}, // Clear cache to prevent memory leak
       });
     }
 
