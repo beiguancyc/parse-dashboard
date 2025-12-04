@@ -383,15 +383,31 @@ export default class DataBrowser extends React.Component {
   }
 
   handleResizeStop(event, { size }) {
+    // Convert effective width back to full panel width when there are hidden panels
+    let newPanelWidth = size.width;
+    if (this.state.panelCount > 1 && this.state.displayedObjectIds.length < this.state.panelCount) {
+      const actualPanelCount = Math.max(this.state.displayedObjectIds.length, 1);
+      // Reverse the calculation: fullWidth = (effectiveWidth / actualPanelCount) * panelCount
+      newPanelWidth = (size.width / actualPanelCount) * this.state.panelCount;
+    }
+
     this.setState({
       isResizing: false,
-      panelWidth: size.width,
+      panelWidth: newPanelWidth,
     });
-    window.localStorage?.setItem(AGGREGATION_PANEL_WIDTH, size.width);
+    window.localStorage?.setItem(AGGREGATION_PANEL_WIDTH, newPanelWidth);
   }
 
   handleResizeDiv(event, { size }) {
-    this.setState({ panelWidth: size.width });
+    // Convert effective width back to full panel width when there are hidden panels
+    let newPanelWidth = size.width;
+    if (this.state.panelCount > 1 && this.state.displayedObjectIds.length < this.state.panelCount) {
+      const actualPanelCount = Math.max(this.state.displayedObjectIds.length, 1);
+      // Reverse the calculation: fullWidth = (effectiveWidth / actualPanelCount) * panelCount
+      newPanelWidth = (size.width / actualPanelCount) * this.state.panelCount;
+    }
+
+    this.setState({ panelWidth: newPanelWidth });
   }
 
   setShowAggregatedData(bool) {
@@ -1507,6 +1523,17 @@ export default class DataBrowser extends React.Component {
       ...other
     } = this.props;
     const { preventSchemaEdits, applicationId } = app;
+
+    // Calculate effective panel width based on actual displayed panels
+    // When panelCount > 1 but fewer panels are actually displayed, reduce width proportionally
+    let effectivePanelWidth = this.state.panelWidth;
+    if (this.state.panelCount > 1 && this.state.displayedObjectIds.length < this.state.panelCount) {
+      // Width per panel = total width / configured panel count
+      // Effective width = width per panel * actual number of displayed panels (or 1 if none)
+      const actualPanelCount = Math.max(this.state.displayedObjectIds.length, 1);
+      effectivePanelWidth = (this.state.panelWidth / this.state.panelCount) * actualPanelCount;
+    }
+
     return (
       <div>
         <div>
@@ -1535,7 +1562,7 @@ export default class DataBrowser extends React.Component {
             selectedCells={this.state.selectedCells}
             handleCellClick={this.handleCellClick}
             isPanelVisible={this.state.isPanelVisible}
-            panelWidth={this.state.panelWidth}
+            panelWidth={effectivePanelWidth}
             isResizing={this.state.isResizing}
             setShowAggregatedData={this.setShowAggregatedData}
             showRowNumber={this.state.showRowNumber}
@@ -1547,7 +1574,7 @@ export default class DataBrowser extends React.Component {
           />
           {this.state.isPanelVisible && (
             <ResizableBox
-              width={this.state.panelWidth}
+              width={effectivePanelWidth}
               height={Infinity}
               minConstraints={[100, Infinity]}
               maxConstraints={[this.state.maxWidth, Infinity]}
@@ -1567,18 +1594,24 @@ export default class DataBrowser extends React.Component {
                     ref={this.setMultiPanelWrapperRef}
                   >
                     {(() => {
-                      // If no objects are displayed, show a single panel with "No object selected"
+                      // If no objects are displayed, show a single panel
                       if (this.state.displayedObjectIds.length === 0) {
+                        // If there's a selected object, show its data
+                        const panelData = this.state.selectedObjectId
+                          ? (this.state.multiPanelData[this.state.selectedObjectId] || this.props.AggregationPanelData)
+                          : {};
+                        const isLoading = this.state.selectedObjectId && this.props.isLoadingCloudFunction;
+
                         return (
                           <AggregationPanel
-                            data={{}}
-                            isLoadingCloudFunction={false}
+                            data={panelData}
+                            isLoadingCloudFunction={isLoading}
                             showAggregatedData={true}
-                            errorAggregatedData={{}}
+                            errorAggregatedData={this.state.selectedObjectId ? this.props.errorAggregatedData : {}}
                             showNote={this.props.showNote}
                             setErrorAggregatedData={this.props.setErrorAggregatedData}
                             setSelectedObjectId={this.setSelectedObjectId}
-                            selectedObjectId={undefined}
+                            selectedObjectId={this.state.selectedObjectId}
                             appName={this.props.appName}
                             className={this.props.className}
                           />
