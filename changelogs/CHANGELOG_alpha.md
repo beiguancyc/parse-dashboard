@@ -1,3 +1,10 @@
+# [8.2.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.1...8.2.0-alpha.2) (2025-12-04)
+
+
+### Bug Fixes
+
+* Info panel covers whole sidebar if fewer objects than panels in multi-panel scenario ([#3042](https://github.com/parse-community/parse-dashboard/issues/3042)) ([dd3ba8d](https://github.com/parse-community/parse-dashboard/commit/dd3ba8d558cbe6659ab9dedb25672a560a3214a8))
+
 # [8.2.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/8.1.1-alpha.1...8.2.0-alpha.1) (2025-12-03)
 
 
