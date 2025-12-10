@@ -1,3 +1,10 @@
+# [8.2.0-alpha.4](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.3...8.2.0-alpha.4) (2025-12-10)
+
+
+### Features
+
+* Add support for `Video` type in View table to display videos ([#3061](https://github.com/parse-community/parse-dashboard/issues/3061)) ([bd4aa4f](https://github.com/parse-community/parse-dashboard/commit/bd4aa4fc1beafd30f1aa29e352bd75793633ec3a))
+
 # [8.2.0-alpha.3](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.2...8.2.0-alpha.3) (2025-12-07)
 
 
