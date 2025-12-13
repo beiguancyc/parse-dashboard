@@ -10,11 +10,14 @@ import copy from 'copy-to-clipboard';
 import BrowserTable from 'dashboard/Data/Browser/BrowserTable.react';
 import BrowserToolbar from 'dashboard/Data/Browser/BrowserToolbar.react';
 import * as ColumnPreferences from 'lib/ColumnPreferences';
+import { CurrentApp } from 'context/currentApp';
 import { dateStringUTC } from 'lib/DateUtils';
 import getFileName from 'lib/getFileName';
+import { getValidScripts, executeScript } from '../../../lib/ScriptUtils';
 import Parse from 'parse';
 import React from 'react';
 import { ResizableBox } from 'react-resizable';
+import ScriptConfirmationModal from '../../../components/ScriptConfirmationModal/ScriptConfirmationModal.react';
 import styles from './Databrowser.scss';
 
 import AggregationPanel from '../../../components/AggregationPanel/AggregationPanel';
@@ -76,6 +79,8 @@ function formatValueForCopy(value, type) {
  * and the keyboard interactions for the data table.
  */
 export default class DataBrowser extends React.Component {
+  static contextType = CurrentApp;
+
   constructor(props) {
     super(props);
 
@@ -141,6 +146,11 @@ export default class DataBrowser extends React.Component {
       multiPanelData: {}, // Object mapping objectId to panel data
       _objectsToFetch: [], // Temporary field for async fetch handling
       loadingObjectIds: new Set(),
+      showScriptConfirmationDialog: false,
+      selectedScript: null,
+      contextMenuX: null,
+      contextMenuY: null,
+      contextMenuItems: null,
     };
 
     this.handleResizeDiv = this.handleResizeDiv.bind(this);
@@ -172,6 +182,7 @@ export default class DataBrowser extends React.Component {
     this.addPanel = this.addPanel.bind(this);
     this.removePanel = this.removePanel.bind(this);
     this.handlePanelScroll = this.handlePanelScroll.bind(this);
+    this.handlePanelHeaderContextMenu = this.handlePanelHeaderContextMenu.bind(this);
     this.handleWrapperWheel = this.handleWrapperWheel.bind(this);
     this.saveOrderTimeout = null;
     this.aggregationPanelRef = React.createRef();
@@ -962,6 +973,51 @@ export default class DataBrowser extends React.Component {
     this.setState({ contextMenuX, contextMenuY, contextMenuItems });
   }
 
+  handlePanelHeaderContextMenu(event, objectId) {
+    const { scripts = [] } = this.context || {};
+    const className = this.props.className;
+    const field = 'objectId';
+
+    const { validScripts, validator } = getValidScripts(scripts, className, field);
+
+    const menuItems = [];
+
+    // Add Scripts menu if there are valid scripts
+    if (validScripts.length && this.props.onEditSelectedRow) {
+      menuItems.push({
+        text: 'Scripts',
+        items: validScripts.map(script => {
+          return {
+            text: script.title,
+            disabled: validator?.(objectId, field) === false,
+            callback: () => {
+              const selectedScript = { ...script, className, objectId };
+              if (script.showConfirmationDialog) {
+                this.setState({
+                  showScriptConfirmationDialog: true,
+                  selectedScript
+                });
+              } else {
+                executeScript(
+                  script,
+                  className,
+                  objectId,
+                  this.props.showNote,
+                  this.props.onRefresh
+                );
+              }
+            },
+          };
+        }),
+      });
+    }
+
+    const { pageX, pageY } = event;
+    if (menuItems.length) {
+      this.setContextMenu(pageX, pageY, menuItems);
+    }
+  }
+
   freezeColumns(index) {
     this.setState({ frozenColumnIndex: index });
   }
@@ -1645,6 +1701,10 @@ export default class DataBrowser extends React.Component {
                                   onMouseDown={(e) => {
                                     e.preventDefault();
                                   }}
+                                  onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    this.handlePanelHeaderContextMenu(e, objectId);
+                                  }}
                                 >
                                   <input
                                     type="checkbox"
@@ -1744,6 +1804,22 @@ export default class DataBrowser extends React.Component {
             x={this.state.contextMenuX}
             y={this.state.contextMenuY}
             items={this.state.contextMenuItems}
+          />
+        )}
+        {this.state.showScriptConfirmationDialog && (
+          <ScriptConfirmationModal
+            script={this.state.selectedScript}
+            onCancel={() => this.setState({ showScriptConfirmationDialog: false, selectedScript: null })}
+            onConfirm={() => {
+              executeScript(
+                this.state.selectedScript,
+                this.state.selectedScript.className,
+                this.state.selectedScript.objectId,
+                this.props.showNote,
+                this.props.onRefresh
+              );
+              this.setState({ showScriptConfirmationDialog: false, selectedScript: null });
+            }}
           />
         )}
       </div>
