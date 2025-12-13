@@ -1,3 +1,10 @@
+# [8.2.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.4...8.2.0-alpha.5) (2025-12-13)
+
+
+### Bug Fixes
+
+* Data browser table headers misaligned when scrolling horizontally ([#3067](https://github.com/parse-community/parse-dashboard/issues/3067)) ([f495dd1](https://github.com/parse-community/parse-dashboard/commit/f495dd10288dc1372d9e01ca23550963c6a95f22))
+
 # [8.2.0-alpha.4](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.3...8.2.0-alpha.4) (2025-12-10)
 
 
