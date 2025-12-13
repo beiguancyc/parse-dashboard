@@ -1,3 +1,10 @@
+# [8.2.0-alpha.6](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.5...8.2.0-alpha.6) (2025-12-13)
+
+
+### Features
+
+* Execute scripts via right-click on info panel header column ([#3068](https://github.com/parse-community/parse-dashboard/issues/3068)) ([2983741](https://github.com/parse-community/parse-dashboard/commit/2983741a05327c86df8d22bd9baa857185357c5c))
+
 # [8.2.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.4...8.2.0-alpha.5) (2025-12-13)
 
 
