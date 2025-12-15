@@ -1,3 +1,10 @@
+# [8.2.0-alpha.7](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.6...8.2.0-alpha.7) (2025-12-15)
+
+
+### Features
+
+* Add keyboard shortcuts for quick actions in data browser ([#3073](https://github.com/parse-community/parse-dashboard/issues/3073)) ([858d0cc](https://github.com/parse-community/parse-dashboard/commit/858d0cca71e84f26342e32b10442138f4b92b634))
+
 # [8.2.0-alpha.6](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.5...8.2.0-alpha.6) (2025-12-13)
 
 
