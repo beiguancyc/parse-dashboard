@@ -50,6 +50,7 @@ Parse Dashboard is a standalone dashboard for managing your [Parse Server](https
     - [Prevent columns sorting](#prevent-columns-sorting)
     - [Custom order in the filter popup](#custom-order-in-the-filter-popup)
     - [Persistent Filters](#persistent-filters)
+    - [Keyboard Shortcuts](#keyboard-shortcuts)
     - [Scripts](#scripts)
     - [Resource Cache](#resource-cache)
 - [Running as Express Middleware](#running-as-express-middleware)
@@ -529,6 +530,12 @@ For example:
 ```
 
 You can conveniently create a filter definition without having to write it by hand by first saving a filter in the data browser, then exporting the filter definition under *App Settings > Export Class Preferences*.
+
+### Keyboard Shortcuts
+
+Configure custom keyboard shortcuts for dashboard actions in **App Settings > Keyboard Shortcuts**.
+
+Delete a shortcut key to disable the shortcut.
 
 ### Scripts
 

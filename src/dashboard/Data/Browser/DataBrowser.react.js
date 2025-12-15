@@ -19,6 +19,7 @@ import React from 'react';
 import { ResizableBox } from 'react-resizable';
 import ScriptConfirmationModal from '../../../components/ScriptConfirmationModal/ScriptConfirmationModal.react';
 import styles from './Databrowser.scss';
+import KeyboardShortcutsManager, { matchesShortcut } from 'lib/KeyboardShortcutsPreferences';
 
 import AggregationPanel from '../../../components/AggregationPanel/AggregationPanel';
 
@@ -146,6 +147,7 @@ export default class DataBrowser extends React.Component {
       multiPanelData: {}, // Object mapping objectId to panel data
       _objectsToFetch: [], // Temporary field for async fetch handling
       loadingObjectIds: new Set(),
+      keyboardShortcuts: null, // Keyboard shortcuts from server
       showScriptConfirmationDialog: false,
       selectedScript: null,
       contextMenuX: null,
@@ -260,9 +262,18 @@ export default class DataBrowser extends React.Component {
     this.checkClassNameChange(this.state.prevClassName, props.className);
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     document.body.addEventListener('keydown', this.handleKey);
     window.addEventListener('resize', this.updateMaxWidth);
+
+    // Load keyboard shortcuts from server
+    try {
+      const manager = new KeyboardShortcutsManager(this.props.app);
+      const shortcuts = await manager.getKeyboardShortcuts(this.props.app.applicationId);
+      this.setState({ keyboardShortcuts: shortcuts });
+    } catch (error) {
+      console.warn('Failed to load keyboard shortcuts:', error);
+    }
   }
 
   componentWillUnmount() {
@@ -846,6 +857,34 @@ export default class DataBrowser extends React.Component {
         if (!this.state.editing && this.state.current) {
           this.setEditing(true);
           e.preventDefault();
+        }
+        break;
+      }
+      default: {
+        // Handle custom keyboard shortcuts from server
+        const shortcuts = this.state.keyboardShortcuts;
+        if (!shortcuts) {
+          break;
+        }
+
+        // Reload data shortcut (only if enabled)
+        if (matchesShortcut(e, shortcuts.dataBrowserReloadData)) {
+          this.handleRefresh();
+          e.preventDefault();
+          break;
+        }
+
+        // Toggle panels shortcut (only if enabled and class has info panels configured)
+        if (matchesShortcut(e, shortcuts.dataBrowserToggleInfoPanels)) {
+          const hasAggregation =
+            this.props.classwiseCloudFunctions?.[
+              `${this.props.app.applicationId}${this.props.appName}`
+            ]?.[this.props.className];
+          if (hasAggregation) {
+            this.togglePanelVisibility();
+            e.preventDefault();
+          }
+          break;
         }
         break;
       }
