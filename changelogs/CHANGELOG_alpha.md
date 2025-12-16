@@ -1,3 +1,10 @@
+# [8.2.0-alpha.8](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.7...8.2.0-alpha.8) (2025-12-16)
+
+
+### Features
+
+* Allow selecting objects by click-dragging over info panel headers ([#3074](https://github.com/parse-community/parse-dashboard/issues/3074)) ([d6ef86c](https://github.com/parse-community/parse-dashboard/commit/d6ef86c138531b628748b4e8823a9f97269bfbe9))
+
 # [8.2.0-alpha.7](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.6...8.2.0-alpha.7) (2025-12-15)
 
 
