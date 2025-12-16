@@ -1,3 +1,10 @@
+# [8.2.0-alpha.9](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.8...8.2.0-alpha.9) (2025-12-16)
+
+
+### Bug Fixes
+
+* Prefetch for multiple info panels in data browser doesn't refresh stale cached data ([#3080](https://github.com/parse-community/parse-dashboard/issues/3080)) ([e71d4e6](https://github.com/parse-community/parse-dashboard/commit/e71d4e62beef712949bf72c690fe31813907b8a0))
+
 # [8.2.0-alpha.8](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.7...8.2.0-alpha.8) (2025-12-16)
 
 
