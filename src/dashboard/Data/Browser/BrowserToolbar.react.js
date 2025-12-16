@@ -80,6 +80,9 @@ const BrowserToolbar = ({
 
   togglePanel,
   isPanelVisible,
+  addPanel,
+  removePanel,
+  panelCount,
   classwiseCloudFunctions,
   appId,
   appName,
@@ -87,6 +90,12 @@ const BrowserToolbar = ({
   toggleScrollToTop,
   autoLoadFirstRow,
   toggleAutoLoadFirstRow,
+  syncPanelScroll,
+  toggleSyncPanelScroll,
+  batchNavigate,
+  toggleBatchNavigate,
+  showPanelCheckbox,
+  toggleShowPanelCheckbox,
 }) => {
   const selectionLength = Object.keys(selection).length;
   const isPendingEditCloneRows = editCloneRows && editCloneRows.length > 0;
@@ -282,6 +291,9 @@ const BrowserToolbar = ({
       selectedData={selectedData}
       togglePanel={togglePanel}
       isPanelVisible={isPanelVisible}
+      addPanel={addPanel}
+      removePanel={removePanel}
+      panelCount={panelCount}
       classwiseCloudFunctions={classwiseCloudFunctions}
       appId={appId}
       appName={appName}
@@ -407,6 +419,63 @@ const BrowserToolbar = ({
             }
             onClick={() => {
               toggleAutoLoadFirstRow();
+            }}
+          />
+          <MenuItem
+            text={
+              <span>
+                {syncPanelScroll && (
+                  <Icon
+                    name="check"
+                    width={12}
+                    height={12}
+                    fill="#ffffffff"
+                    className="menuCheck"
+                  />
+                )}
+                Sync panel scrolling
+              </span>
+            }
+            onClick={() => {
+              toggleSyncPanelScroll();
+            }}
+          />
+          <MenuItem
+            text={
+              <span>
+                {batchNavigate && (
+                  <Icon
+                    name="check"
+                    width={12}
+                    height={12}
+                    fill="#ffffffff"
+                    className="menuCheck"
+                  />
+                )}
+                Batch-navigate panels
+              </span>
+            }
+            onClick={() => {
+              toggleBatchNavigate();
+            }}
+          />
+          <MenuItem
+            text={
+              <span>
+                {showPanelCheckbox && (
+                  <Icon
+                    name="check"
+                    width={12}
+                    height={12}
+                    fill="#ffffffff"
+                    className="menuCheck"
+                  />
+                )}
+                Show panel selection
+              </span>
+            }
+            onClick={() => {
+              toggleShowPanelCheckbox();
             }}
           />
         </BrowserMenu>
