@@ -957,8 +957,11 @@ export default class DataBrowser extends React.Component {
           const objectsToFetch = [];
 
           if (prevState.panelCount > 1 && selectedObjectId) {
-            // If the selected object is not in the displayed list, update displayed objects
-            if (!newDisplayedObjectIds.includes(selectedObjectId)) {
+            // When batch-navigate is enabled, always rebuild the batch starting from the selected row
+            // to ensure prefetched data is properly utilized
+            const shouldRebuildBatch = !newDisplayedObjectIds.includes(selectedObjectId) || prevState.batchNavigate;
+
+            if (shouldRebuildBatch) {
               const currentIndex = this.props.data?.findIndex(obj => obj.id === selectedObjectId);
               if (currentIndex !== -1) {
                 const { prefetchCache } = prevState;
@@ -1367,8 +1370,10 @@ export default class DataBrowser extends React.Component {
     }
 
     const cache = { ...this.state.prefetchCache };
+    const now = Date.now();
+
+    // Clean up stale entries and track which keys are removed
     if (prefetchStale) {
-      const now = Date.now();
       Object.keys(cache).forEach(key => {
         if ((now - cache[key].timestamp) / 1000 >= prefetchStale) {
           delete cache[key];
@@ -1378,6 +1383,18 @@ export default class DataBrowser extends React.Component {
     if (Object.keys(cache).length !== Object.keys(this.state.prefetchCache).length) {
       this.setState({ prefetchCache: cache });
     }
+
+    // Helper function to check if an object needs prefetching (missing or stale)
+    const needsPrefetch = (objectId) => {
+      if (!Object.prototype.hasOwnProperty.call(cache, objectId)) {
+        return true;
+      }
+      if (prefetchStale) {
+        const entry = cache[objectId];
+        return entry && (now - entry.timestamp) / 1000 >= prefetchStale;
+      }
+      return false;
+    };
 
     const history = this.state.selectionHistory;
     if (history.length < 3) {
@@ -1401,7 +1418,7 @@ export default class DataBrowser extends React.Component {
       ) {
         // For each step ahead, prefetch the main object
         const mainObjId = this.props.data[c + (i * stepSize)].id;
-        if (!Object.prototype.hasOwnProperty.call(cache, mainObjId)) {
+        if (needsPrefetch(mainObjId)) {
           this.prefetchObject(mainObjId);
         }
 
@@ -1410,7 +1427,7 @@ export default class DataBrowser extends React.Component {
           const batchStartIndex = c + (i * stepSize);
           for (let j = 1; j < panelCount && batchStartIndex + j < this.props.data.length; j++) {
             const batchObjId = this.props.data[batchStartIndex + j].id;
-            if (!Object.prototype.hasOwnProperty.call(cache, batchObjId)) {
+            if (needsPrefetch(batchObjId)) {
               this.prefetchObject(batchObjId);
             }
           }
