@@ -1,3 +1,10 @@
+# [8.2.0-alpha.11](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.10...8.2.0-alpha.11) (2025-12-16)
+
+
+### Features
+
+* Add getting related records to context menu of info panel header ([#3083](https://github.com/parse-community/parse-dashboard/issues/3083)) ([2623802](https://github.com/parse-community/parse-dashboard/commit/2623802b3631206b9a23e3d0e442a8d650b1bc12))
+
 # [8.2.0-alpha.10](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.9...8.2.0-alpha.10) (2025-12-16)
 
 
