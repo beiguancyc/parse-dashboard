@@ -635,9 +635,34 @@ class Browser extends DashboardView {
     this.props.schema
       .dispatch(ActionTypes.CREATE_CLASS, { className })
       .then(() => {
-        this.state.clp[className] = this.props.schema.data.get('CLPs').toJS()[className];
-        this.state.counts[className] = 0;
-        this.props.navigate(generatePath(this.context, 'browser/' + className));
+        // 对于自定义类（非系统类），自动设置安全的默认 CLP：
+        // - 移除 public read/write 权限
+        // - 禁用 addField
+        // - 仅允许已认证用户进行读写操作
+        const isCustomClass = !className.startsWith('_');
+        if (isCustomClass) {
+          const secureCLP = {
+            get: { requiresAuthentication: true },
+            find: { requiresAuthentication: true },
+            count: { requiresAuthentication: true },
+            create: { requiresAuthentication: true },
+            update: { requiresAuthentication: true },
+            delete: { requiresAuthentication: true },
+            addField: {}, // 禁用客户端添加字段
+          };
+          return this.props.schema
+            .dispatch(ActionTypes.SET_CLP, { className, clp: secureCLP })
+            .then(() => {
+              this.state.clp[className] = this.props.schema.data.get('CLPs').toJS()[className];
+              this.state.counts[className] = 0;
+              this.props.navigate(generatePath(this.context, 'browser/' + className));
+            });
+        } else {
+          // 系统类保持原有逻辑
+          this.state.clp[className] = this.props.schema.data.get('CLPs').toJS()[className];
+          this.state.counts[className] = 0;
+          this.props.navigate(generatePath(this.context, 'browser/' + className));
+        }
       })
       .finally(() => {
         this.setState({ showCreateClassDialog: false });
