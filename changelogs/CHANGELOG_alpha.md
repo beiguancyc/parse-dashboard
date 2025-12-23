@@ -1,3 +1,10 @@
+# [8.2.0-alpha.13](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.12...8.2.0-alpha.13) (2025-12-23)
+
+
+### Features
+
+* Add confirmation dialog to handle conflicts when migrating settings to server ([#3092](https://github.com/parse-community/parse-dashboard/issues/3092)) ([ae50b8d](https://github.com/parse-community/parse-dashboard/commit/ae50b8dadfbdb05d8771844d6505c7c177a7e375))
+
 # [8.2.0-alpha.12](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.11...8.2.0-alpha.12) (2025-12-23)
 
 
