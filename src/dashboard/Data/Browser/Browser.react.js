@@ -38,6 +38,8 @@ import { ActionTypes } from 'lib/stores/SchemaStore';
 import stringCompare from 'lib/stringCompare';
 import subscribeTo from 'lib/subscribeTo';
 import { withRouter } from 'lib/withRouter';
+import FilterPreferencesManager from 'lib/FilterPreferencesManager';
+import { prefersServerStorage } from 'lib/StoragePreferences';
 import Parse from 'parse';
 import React from 'react';
 import { Helmet } from 'react-helmet';
@@ -129,6 +131,7 @@ class Browser extends DashboardView {
     this.subsection = 'Browser';
     this.noteTimeout = null;
     this.currentQuery = null;
+    this.filterPreferencesManager = null;
     const limit = window.localStorage?.getItem('browserLimit');
 
     this.state = {
@@ -188,6 +191,7 @@ class Browser extends DashboardView {
       AggregationPanelData: {},
       isLoadingInfoPanel: false,
       errorAggregatedData: {},
+      classFilters: {}, // Map of className -> filters array
     };
 
     this.addLocation = this.addLocation.bind(this);
@@ -298,6 +302,52 @@ class Browser extends DashboardView {
       this.setState({ configData: data });
       this.classAndCloudFuntionMap(this.state.configData);
     });
+
+    // Initialize FilterPreferencesManager
+    if (this.context) {
+      this.filterPreferencesManager = new FilterPreferencesManager(this.context);
+      // Load all class filters if schema is already available
+      if (this.props.schema?.data?.get('classes')) {
+        this.loadAllClassFilters();
+      }
+    }
+  }
+
+  async loadAllClassFilters(propsToUse) {
+    if (!this.filterPreferencesManager) {
+      return;
+    }
+
+    // Use provided props or fall back to this.props
+    const props = propsToUse || this.props;
+    const schema = props.schema;
+    if (!schema || !schema.data) {
+      return;
+    }
+
+    const classFilters = {};
+
+    // Load filters for all classes
+    const classList = schema.data.get('classes');
+    if (classList) {
+      const classNames = Object.keys(classList.toObject());
+      await Promise.all(
+        classNames.map(async (className) => {
+          try {
+            const filters = await this.filterPreferencesManager.getFilters(
+              this.context.applicationId,
+              className
+            );
+            classFilters[className] = filters || [];
+          } catch (error) {
+            console.error(`Failed to load filters for class ${className}:`, error);
+            classFilters[className] = [];
+          }
+        })
+      );
+    }
+
+    this.setState({ classFilters });
   }
 
   componentWillUnmount() {
@@ -339,6 +389,15 @@ class Browser extends DashboardView {
         nextProps.schema.data.get('classes')
       );
       this.redirectToFirstClass(nextProps.schema.data.get('classes'), nextContext);
+    }
+
+    // Load filters when schema becomes available or changes
+    if (
+      nextProps.schema?.data?.get('classes') &&
+      (!this.props.schema?.data?.get('classes') ||
+        this.props.params.appId !== nextProps.params.appId)
+    ) {
+      this.loadAllClassFilters(nextProps);
     }
   }
 
@@ -1294,7 +1353,7 @@ class Browser extends DashboardView {
     });
   }
 
-  saveFilters(filters, name, relativeDate, filterId = null) {
+  async saveFilters(filters, name, relativeDate, filterId = null) {
     const jsonFilters = filters.toJSON();
     if (relativeDate && jsonFilters?.length) {
       for (let i = 0; i < jsonFilters.length; i++) {
@@ -1364,15 +1423,16 @@ class Browser extends DashboardView {
         });
       }
     } else {
-      // Check if this is updating a legacy filter (no filterId but filter content matches existing filter without ID)
-      const existingLegacyFilterIndex = preferences.filters.findIndex(filter =>
-        !filter.id && filter.name === name && filter.filter === _filters
+      // Check if this is updating an existing filter by name and content match
+      // (legacy filters get auto-assigned UUIDs when read, so we match by content)
+      const existingFilterIndex = preferences.filters.findIndex(filter =>
+        filter.name === name && filter.filter === _filters
       );
 
-      if (existingLegacyFilterIndex !== -1) {
-        // Convert legacy filter to modern filter by adding an ID
-        newFilterId = crypto.randomUUID();
-        preferences.filters[existingLegacyFilterIndex] = {
+      if (existingFilterIndex !== -1) {
+        // Update existing filter, keeping its ID
+        newFilterId = preferences.filters[existingFilterIndex].id;
+        preferences.filters[existingFilterIndex] = {
           name,
           id: newFilterId,
           filter: _filters,
@@ -1388,11 +1448,31 @@ class Browser extends DashboardView {
       }
     }
 
-    ClassPreferences.updatePreferences(
-      preferences,
-      this.context.applicationId,
-      this.props.params.className
-    );
+    // Use FilterPreferencesManager if available, otherwise fallback to local storage
+    if (this.filterPreferencesManager) {
+      const filterToSave = {
+        id: newFilterId,
+        name,
+        className: this.props.params.className,
+        filter: _filters,
+      };
+      await this.filterPreferencesManager.saveFilter(
+        this.context.applicationId,
+        this.props.params.className,
+        filterToSave,
+        preferences.filters
+      );
+    } else {
+      // Fallback to local storage
+      ClassPreferences.updatePreferences(
+        preferences,
+        this.context.applicationId,
+        this.props.params.className
+      );
+    }
+
+    // Reload filters for this class to update the sidebar
+    await this.reloadClassFilters(this.props.params.className);
 
     super.forceUpdate();
 
@@ -1400,7 +1480,28 @@ class Browser extends DashboardView {
     return newFilterId;
   }
 
-  deleteFilter(filterIdOrObject) {
+  async reloadClassFilters(className) {
+    if (!this.filterPreferencesManager) {
+      return;
+    }
+
+    try {
+      const filters = await this.filterPreferencesManager.getFilters(
+        this.context.applicationId,
+        className
+      );
+      this.setState(prevState => ({
+        classFilters: {
+          ...prevState.classFilters,
+          [className]: filters || []
+        }
+      }));
+    } catch (error) {
+      console.error(`Failed to reload filters for class ${className}:`, error);
+    }
+  }
+
+  async deleteFilter(filterIdOrObject) {
     const preferences = ClassPreferences.getPreferences(
       this.context.applicationId,
       this.props.params.className
@@ -1425,12 +1526,26 @@ class Browser extends DashboardView {
         }
       }
 
-      ClassPreferences.updatePreferences(
-        { ...preferences, filters: updatedFilters },
-        this.context.applicationId,
-        this.props.params.className
-      );
+      // Use FilterPreferencesManager if available, otherwise fallback to local storage
+      if (this.filterPreferencesManager) {
+        await this.filterPreferencesManager.deleteFilter(
+          this.context.applicationId,
+          this.props.params.className,
+          filterIdOrObject,
+          updatedFilters
+        );
+      } else {
+        // Fallback to local storage
+        ClassPreferences.updatePreferences(
+          { ...preferences, filters: updatedFilters },
+          this.context.applicationId,
+          this.props.params.className
+        );
+      }
     }
+
+    // Reload filters for this class to update the sidebar
+    await this.reloadClassFilters(this.props.params.className);
 
     super.forceUpdate();
   }
@@ -2263,13 +2378,24 @@ class Browser extends DashboardView {
     }
     const allCategories = [];
     for (const row of [...special, ...categories]) {
-      const { filters = [] } = ClassPreferences.getPreferences(
-        this.context.applicationId,
-        row.name
-      );
-      // Set filters sorted alphabetically
-      row.filters = filters.sort((a, b) => a.name.localeCompare(b.name));
-      allCategories.push(row);
+      let filters = this.state.classFilters[row.name];
+
+      // Fallback to local storage ONLY if not using server storage and filters not loaded yet
+      if (filters === undefined &&
+          (!this.filterPreferencesManager?.isServerConfigEnabled() ||
+           !prefersServerStorage(this.context.applicationId))) {
+        const prefs = ClassPreferences.getPreferences(this.context.applicationId, row.name);
+        filters = prefs?.filters || [];
+      } else if (filters === undefined) {
+        filters = [];
+      }
+
+      // Set filters sorted alphabetically and create a new row object to trigger re-render
+      const sortedFilters = filters.sort((a, b) => a.name.localeCompare(b.name));
+      allCategories.push({
+        ...row,
+        filters: sortedFilters
+      });
     }
 
     return (
