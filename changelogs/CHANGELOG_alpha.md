@@ -1,3 +1,10 @@
+# [8.2.0-alpha.12](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.11...8.2.0-alpha.12) (2025-12-23)
+
+
+### Features
+
+* Add storing data browser filters on server ([#3090](https://github.com/parse-community/parse-dashboard/issues/3090)) ([b991734](https://github.com/parse-community/parse-dashboard/commit/b991734bf792ece42099360f01da1608b915d86d))
+
 # [8.2.0-alpha.11](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.10...8.2.0-alpha.11) (2025-12-16)
 
 
