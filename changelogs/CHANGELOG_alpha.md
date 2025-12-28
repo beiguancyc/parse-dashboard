@@ -1,3 +1,10 @@
+# [8.2.0-alpha.16](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.15...8.2.0-alpha.16) (2025-12-28)
+
+
+### Performance Improvements
+
+* Remove unnecessary data fetches from data browser pagination ([#3098](https://github.com/parse-community/parse-dashboard/issues/3098)) ([bc59998](https://github.com/parse-community/parse-dashboard/commit/bc5999864c6ace4fcd15947a7d7e93322f141c6a))
+
 # [8.2.0-alpha.15](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.14...8.2.0-alpha.15) (2025-12-28)
 
 
