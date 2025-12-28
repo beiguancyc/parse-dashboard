@@ -1,3 +1,10 @@
+# [8.2.0-alpha.15](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.14...8.2.0-alpha.15) (2025-12-28)
+
+
+### Bug Fixes
+
+*  Data browser pagination is ignored when using browser navigation or page reload ([#3097](https://github.com/parse-community/parse-dashboard/issues/3097)) ([bcc4d5f](https://github.com/parse-community/parse-dashboard/commit/bcc4d5f88587b2bec2654ab5dcc3b85be717e3a1))
+
 # [8.2.0-alpha.14](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.13...8.2.0-alpha.14) (2025-12-23)
 
 
