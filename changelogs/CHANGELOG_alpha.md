@@ -1,3 +1,10 @@
+# [8.2.0-alpha.19](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.18...8.2.0-alpha.19) (2026-01-10)
+
+
+### Bug Fixes
+
+* Context menu in data browser disappears behind menu bar ([#3106](https://github.com/parse-community/parse-dashboard/issues/3106)) ([2c6c471](https://github.com/parse-community/parse-dashboard/commit/2c6c4715948bb36633c34dee0c2103044b7be8c9))
+
 # [8.2.0-alpha.18](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.17...8.2.0-alpha.18) (2026-01-07)
 
 
