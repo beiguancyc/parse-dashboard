@@ -1,3 +1,10 @@
+# [8.2.0-alpha.20](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.19...8.2.0-alpha.20) (2026-01-11)
+
+
+### Bug Fixes
+
+* Saved filter is not recognized in data browser filter dialog ([#3108](https://github.com/parse-community/parse-dashboard/issues/3108)) ([8a4ce15](https://github.com/parse-community/parse-dashboard/commit/8a4ce159a384f8b666ebed8190ed0fb922538004))
+
 # [8.2.0-alpha.19](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.18...8.2.0-alpha.19) (2026-01-10)
 
 
