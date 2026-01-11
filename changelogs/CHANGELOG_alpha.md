@@ -1,3 +1,10 @@
+# [8.2.0-alpha.21](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.20...8.2.0-alpha.21) (2026-01-11)
+
+
+### Bug Fixes
+
+* Some context menu sub-menu lists don't change background color on mouse hover in Safari browser ([#3109](https://github.com/parse-community/parse-dashboard/issues/3109)) ([6269d18](https://github.com/parse-community/parse-dashboard/commit/6269d184ba86b39747ddaebea5e6f10702dda3f1))
+
 # [8.2.0-alpha.20](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.19...8.2.0-alpha.20) (2026-01-11)
 
 
