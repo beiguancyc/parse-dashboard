@@ -47,6 +47,7 @@ import { useBeforeUnload } from 'react-router-dom';
 import BrowserFooter from './BrowserFooter.react';
 
 const SELECTED_ROWS_MESSAGE = 'There are selected rows. Are you sure you want to leave this page?';
+const EMPTY_FILTERS_ARRAY = [];
 
 function SelectedRowsNavigationPrompt({ when }) {
   const message = SELECTED_ROWS_MESSAGE;
@@ -194,6 +195,8 @@ class Browser extends DashboardView {
       classFilters: {}, // Map of className -> filters array
     };
 
+    this._isMounted = false;
+
     this.addLocation = this.addLocation.bind(this);
     this.allClassesSchema = this.getAllClassesSchema.bind(this);
     this.removeLocation = this.removeLocation.bind(this);
@@ -297,6 +300,7 @@ class Browser extends DashboardView {
   }
 
   componentDidMount() {
+    this._isMounted = true;
     this.addLocation(this.props.params.appId);
     window.addEventListener('mouseup', this.onMouseUpRowCheckBox);
     get('/parse-dashboard-config.json').then(data => {
@@ -348,10 +352,14 @@ class Browser extends DashboardView {
       );
     }
 
-    this.setState({ classFilters });
+    // Check if component is still mounted before updating state
+    if (this._isMounted) {
+      this.setState({ classFilters });
+    }
   }
 
   componentWillUnmount() {
+    this._isMounted = false;
     if (this.currentQuery) {
       this.currentQuery.cancel();
     }
@@ -1441,10 +1449,26 @@ class Browser extends DashboardView {
     }
 
     const _filters = JSON.stringify(jsonFilters);
+    const className = this.props.params.className;
+
+    // Use server-loaded filters from state if available, otherwise fallback to local storage
+    const existingFilters = this.state.classFilters[className] || [];
+
     const preferences = ClassPreferences.getPreferences(
       this.context.applicationId,
-      this.props.params.className
+      className
     );
+
+    // Initialize preferences.filters from state if needed
+    if (!preferences.filters) {
+      preferences.filters = [];
+    }
+
+    // Merge server filters into preferences for the update logic
+    // Use server filters as source of truth
+    const serverFilterIds = new Set(existingFilters.filter(f => f.id).map(f => f.id));
+    const localOnlyFilters = preferences.filters.filter(f => !f.id || !serverFilterIds.has(f.id));
+    preferences.filters = [...existingFilters, ...localOnlyFilters];
 
     let newFilterId = filterId;
 
@@ -2652,6 +2676,7 @@ class Browser extends DashboardView {
               perms={this.state.clp[className]}
               schema={this.props.schema}
               filters={this.state.filters}
+              savedFilters={this.state.classFilters[className] || EMPTY_FILTERS_ARRAY}
               onFilterChange={this.updateFilters}
               onFilterSave={(...args) => this.saveFilters(...args)}
               onDeleteFilter={this.deleteFilter}
