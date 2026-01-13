@@ -1,3 +1,10 @@
+# [8.2.0-alpha.22](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.21...8.2.0-alpha.22) (2026-01-13)
+
+
+### Features
+
+* Add graph panel for data visualization ([#3110](https://github.com/parse-community/parse-dashboard/issues/3110)) ([1e15e27](https://github.com/parse-community/parse-dashboard/commit/1e15e2727900dc06bafdd9ba48fce664b924f906))
+
 # [8.2.0-alpha.21](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.20...8.2.0-alpha.21) (2026-01-11)
 
 
