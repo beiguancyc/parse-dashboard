@@ -1,3 +1,10 @@
+# [8.2.0-alpha.23](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.22...8.2.0-alpha.23) (2026-01-13)
+
+
+### Bug Fixes
+
+* Graph panel shows date tick labels on x-axis in local time instead of UTC ([#3111](https://github.com/parse-community/parse-dashboard/issues/3111)) ([85d4946](https://github.com/parse-community/parse-dashboard/commit/85d4946738d1a2b494cd9a18a9d33e99674ad671))
+
 # [8.2.0-alpha.22](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.21...8.2.0-alpha.22) (2026-01-13)
 
 
