@@ -1,3 +1,10 @@
+# [8.2.0-alpha.25](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.24...8.2.0-alpha.25) (2026-01-14)
+
+
+### Features
+
+* Add storing data browser graphs to support multiple graphs per class ([#3113](https://github.com/parse-community/parse-dashboard/issues/3113)) ([e76f605](https://github.com/parse-community/parse-dashboard/commit/e76f6051dcf3df0406aa58279d68f6f5f1bcfbe6))
+
 # [8.2.0-alpha.24](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.23...8.2.0-alpha.24) (2026-01-13)
 
 
