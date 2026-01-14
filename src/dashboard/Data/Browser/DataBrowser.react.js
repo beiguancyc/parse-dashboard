@@ -14,6 +14,7 @@ import { CurrentApp } from 'context/currentApp';
 import { dateStringUTC } from 'lib/DateUtils';
 import GraphDialog from 'dashboard/Data/Browser/GraphDialog.react';
 import GraphPanel from 'components/GraphPanel/GraphPanel.react';
+import GraphPreferencesManager from 'lib/GraphPreferencesManager';
 import getFileName from 'lib/getFileName';
 import { getValidScripts, executeScript } from '../../../lib/ScriptUtils';
 import Parse from 'parse';
@@ -36,12 +37,6 @@ const AGGREGATION_PANEL_WIDTH = 'aggregationPanelWidth';
 const AGGREGATION_PANEL_COUNT = 'aggregationPanelCount';
 const GRAPH_PANEL_VISIBLE = 'graphPanelVisible';
 const GRAPH_PANEL_WIDTH = 'graphPanelWidth';
-const GRAPH_PANEL_CONFIG = 'graphPanelConfig';
-
-// Helper to get scoped localStorage key for graph config
-function getGraphConfigKey(appId, appName, className) {
-  return `${GRAPH_PANEL_CONFIG}_${appId}${appName}_${className}`;
-}
 
 function formatValueForCopy(value, type) {
   if (value === undefined) {
@@ -129,18 +124,10 @@ export default class DataBrowser extends React.Component {
     const storedGraphPanelWidth = window.localStorage?.getItem(GRAPH_PANEL_WIDTH);
     const parsedWidth = storedGraphPanelWidth ? parseInt(storedGraphPanelWidth, 10) : 400;
     const parsedGraphPanelWidth = !isNaN(parsedWidth) && parsedWidth > 0 ? parsedWidth : 400;
-    const graphConfigKey = getGraphConfigKey(props.app.applicationId, props.appName, props.className);
-    const storedGraphConfig = window.localStorage?.getItem(graphConfigKey);
-    let parsedGraphConfig = null;
-    if (storedGraphConfig) {
-      try {
-        parsedGraphConfig = JSON.parse(storedGraphConfig);
-      } catch (error) {
-        console.error('Failed to parse graph panel config from localStorage:', error);
-        // Remove the corrupted config from localStorage
-        window.localStorage?.removeItem(graphConfigKey);
-      }
-    }
+
+    // Note: We don't load graphConfig from localStorage here anymore.
+    // Graphs are now loaded from server/localStorage via GraphPreferencesManager in componentDidMount
+    // and componentDidUpdate. This ensures we use the new server-based storage system.
 
     this.state = {
       order: order,
@@ -185,8 +172,10 @@ export default class DataBrowser extends React.Component {
       draggedPanelSelection: false,
       isGraphPanelVisible: storedGraphPanelVisible,
       graphPanelWidth: parsedGraphPanelWidth,
-      graphConfig: parsedGraphConfig,
+      graphConfig: null, // Will be loaded from server in componentDidMount
+      availableGraphs: [],
       showGraphDialog: false,
+      isCreatingNewGraph: false,
     };
 
     this.handleResizeDiv = this.handleResizeDiv.bind(this);
@@ -228,8 +217,11 @@ export default class DataBrowser extends React.Component {
     this.handleGraphResizeStop = this.handleGraphResizeStop.bind(this);
     this.handleGraphResizeDiv = this.handleGraphResizeDiv.bind(this);
     this.showGraphDialog = this.showGraphDialog.bind(this);
+    this.showNewGraphDialog = this.showNewGraphDialog.bind(this);
     this.hideGraphDialog = this.hideGraphDialog.bind(this);
     this.saveGraphConfig = this.saveGraphConfig.bind(this);
+    this.deleteGraphConfig = this.deleteGraphConfig.bind(this);
+    this.selectGraph = this.selectGraph.bind(this);
     this.saveOrderTimeout = null;
     this.aggregationPanelRef = React.createRef();
     this.panelColumnRefs = [];
@@ -237,6 +229,7 @@ export default class DataBrowser extends React.Component {
     this.isWheelScrolling = false;
     this.multiPanelWrapperElement = null;
     this.setMultiPanelWrapperRef = this.setMultiPanelWrapperRef.bind(this);
+    this.graphPreferencesManager = new GraphPreferencesManager(props.app);
   }
 
   setMultiPanelWrapperRef(element) {
@@ -319,6 +312,23 @@ export default class DataBrowser extends React.Component {
     } catch (error) {
       console.warn('Failed to load keyboard shortcuts:', error);
     }
+
+    // Load graphs on initial mount
+    try {
+      const graphs = await this.graphPreferencesManager.getGraphs(
+        this.props.app.applicationId,
+        this.props.className
+      );
+      // Set the first graph as the current graph if any exist
+      const graphConfig = graphs && graphs.length > 0 ? graphs[0] : null;
+      this.setState({
+        availableGraphs: graphs || [],
+        graphConfig: graphConfig
+      });
+    } catch (error) {
+      console.error('Failed to load graphs on mount:', error);
+      this.setState({ availableGraphs: [], graphConfig: null });
+    }
   }
 
   componentWillUnmount() {
@@ -330,25 +340,30 @@ export default class DataBrowser extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  async componentDidUpdate(prevProps, prevState) {
     // Reload graphConfig when className changes
     if (this.props.className !== prevProps.className) {
-      const graphConfigKey = getGraphConfigKey(
-        this.props.app.applicationId,
-        this.props.appName,
-        this.props.className
-      );
-      const storedGraphConfig = window.localStorage?.getItem(graphConfigKey);
-      let parsedGraphConfig = null;
-      if (storedGraphConfig) {
-        try {
-          parsedGraphConfig = JSON.parse(storedGraphConfig);
-        } catch (error) {
-          console.error('Failed to parse graph panel config from localStorage:', error);
-          window.localStorage?.removeItem(graphConfigKey);
-        }
+      // Try to load from server first, fallback to localStorage
+      try {
+        const graphs = await this.graphPreferencesManager.getGraphs(
+          this.props.app.applicationId,
+          this.props.className
+        );
+        // Use the first graph if any exists, or null
+        const graphConfig = graphs && graphs.length > 0 ? graphs[0] : null;
+        this.setState({
+          graphConfig,
+          availableGraphs: graphs || []
+        });
+      } catch (error) {
+        console.error('Failed to load graphs on className change:', error);
+        // GraphPreferencesManager handles its own localStorage fallback
+        // Just clear the state on error
+        this.setState({
+          graphConfig: null,
+          availableGraphs: []
+        });
       }
-      this.setState({ graphConfig: parsedGraphConfig });
     }
 
     // Clear panels when className changes, data becomes null, or data reloads
@@ -1248,25 +1263,130 @@ export default class DataBrowser extends React.Component {
     this.setState({ graphPanelWidth: size.width });
   }
 
-  showGraphDialog() {
-    this.setState({ showGraphDialog: true });
+  showGraphDialog(isNewGraph = false) {
+    this.setState({
+      showGraphDialog: true,
+      isCreatingNewGraph: isNewGraph
+    });
+  }
+
+  showNewGraphDialog() {
+    this.setState({
+      showGraphDialog: true,
+      isCreatingNewGraph: true
+    });
   }
 
   hideGraphDialog() {
     this.setState({ showGraphDialog: false });
   }
 
-  saveGraphConfig(config) {
+  async saveGraphConfig(config) {
+    // Ensure config has an ID for server storage
+    const configWithId = {
+      ...config,
+      id: config.id || this.graphPreferencesManager.generateGraphId()
+    };
+
+    // Store previous state for potential rollback
+    const previousGraphConfig = this.state.graphConfig;
+    const previousAvailableGraphs = this.state.availableGraphs;
+
+    // Optimistically update availableGraphs to include the new/updated graph
+    const existingGraphIndex = this.state.availableGraphs.findIndex(g => g.id === configWithId.id);
+    let updatedAvailableGraphs;
+    if (existingGraphIndex >= 0) {
+      // Update existing graph
+      updatedAvailableGraphs = [...this.state.availableGraphs];
+      updatedAvailableGraphs[existingGraphIndex] = configWithId;
+    } else {
+      // Add new graph
+      updatedAvailableGraphs = [...this.state.availableGraphs, configWithId];
+    }
+
     this.setState({
-      graphConfig: config,
+      graphConfig: configWithId,
       showGraphDialog: false,
+      availableGraphs: updatedAvailableGraphs,
     });
-    const graphConfigKey = getGraphConfigKey(
-      this.props.app.applicationId,
-      this.props.appName,
-      this.props.className
-    );
-    window.localStorage?.setItem(graphConfigKey, JSON.stringify(config));
+
+    // Try to save to server/localStorage
+    try {
+      await this.graphPreferencesManager.saveGraph(
+        this.props.app.applicationId,
+        this.props.className,
+        configWithId,
+        [] // allGraphs not needed for single save
+      );
+
+      // Reload all graphs to update the dropdown from server
+      const graphs = await this.graphPreferencesManager.getGraphs(
+        this.props.app.applicationId,
+        this.props.className
+      );
+      this.setState({ availableGraphs: graphs || [] });
+    } catch (error) {
+      console.error('Failed to save graph:', error);
+      // Revert optimistic update on error
+      this.setState({
+        graphConfig: previousGraphConfig,
+        availableGraphs: previousAvailableGraphs
+      });
+      // Show error notification to user
+      if (this.props.showNote) {
+        this.props.showNote('Failed to save graph. Please try again.', true);
+      }
+    }
+  }
+
+  selectGraph(graph) {
+    this.setState({ graphConfig: graph });
+  }
+
+  async deleteGraphConfig(graphId) {
+    // Store previous state for potential rollback
+    const previousGraphConfig = this.state.graphConfig;
+    const previousAvailableGraphs = this.state.availableGraphs;
+    const previousIsGraphPanelVisible = this.state.isGraphPanelVisible;
+
+    // Optimistically update UI
+    this.setState({
+      graphConfig: null,
+      showGraphDialog: false,
+      isGraphPanelVisible: false,
+    });
+
+    // Try to delete from server/localStorage
+    try {
+      await this.graphPreferencesManager.deleteGraph(
+        this.props.app.applicationId,
+        this.props.className,
+        graphId,
+        [] // allGraphs not needed for single delete
+      );
+
+      // Reload all graphs to update the dropdown
+      const graphs = await this.graphPreferencesManager.getGraphs(
+        this.props.app.applicationId,
+        this.props.className
+      );
+      this.setState({ availableGraphs: graphs || [] });
+
+      // Clear the graph panel visibility from localStorage
+      window.localStorage?.setItem(GRAPH_PANEL_VISIBLE, 'false');
+    } catch (error) {
+      console.error('Failed to delete graph:', error);
+      // Revert optimistic update on error
+      this.setState({
+        graphConfig: previousGraphConfig,
+        availableGraphs: previousAvailableGraphs,
+        isGraphPanelVisible: previousIsGraphPanelVisible
+      });
+      // Show error notification to user
+      if (this.props.showNote) {
+        this.props.showNote('Failed to delete graph. Please try again.', true);
+      }
+    }
   }
 
   handlePanelScroll(event, index) {
@@ -1999,7 +2119,7 @@ export default class DataBrowser extends React.Component {
               </div>
             </ResizableBox>
           )}
-          {this.state.isGraphPanelVisible && this.state.graphConfig && (() => {
+          {this.state.isGraphPanelVisible && (() => {
             // Calculate max width for graph panel, accounting for aggregation panel when visible
             const aggregationPanelWidth = this.state.isPanelVisible ? effectivePanelWidth : 0;
             const graphMaxWidth = Math.max(300, this.state.maxWidth - aggregationPanelWidth);
@@ -2027,6 +2147,9 @@ export default class DataBrowser extends React.Component {
                   onRefresh={this.handleRefresh}
                   onEdit={this.showGraphDialog}
                   onClose={this.toggleGraphPanelVisibility}
+                  availableGraphs={this.state.availableGraphs}
+                  onGraphSelect={this.selectGraph}
+                  onNewGraph={this.showNewGraphDialog}
                 />
               </ResizableBox>
             );
@@ -2077,8 +2200,6 @@ export default class DataBrowser extends React.Component {
           toggleShowPanelCheckbox={this.toggleShowPanelCheckbox}
           toggleGraphPanel={this.toggleGraphPanelVisibility}
           isGraphPanelVisible={this.state.isGraphPanelVisible}
-          showGraphDialog={this.showGraphDialog}
-          hasGraphConfig={!!this.state.graphConfig}
           {...other}
           onRefresh={this.handleRefresh}
         />
@@ -2109,9 +2230,11 @@ export default class DataBrowser extends React.Component {
         {this.state.showGraphDialog && (
           <GraphDialog
             columns={this.props.columns}
-            initialConfig={this.state.graphConfig}
+            className={this.props.className}
+            initialConfig={this.state.isCreatingNewGraph ? null : this.state.graphConfig}
             onConfirm={this.saveGraphConfig}
             onCancel={this.hideGraphDialog}
+            onDelete={this.deleteGraphConfig}
           />
         )}
       </div>

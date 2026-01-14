@@ -46,7 +46,7 @@ const CALCULATED_VALUE_OPERATORS = [
 
 export default class GraphDialog extends React.Component {
   constructor(props) {
-    super();
+    super(props);
 
     const initialConfig = props.initialConfig || {};
 
@@ -64,6 +64,7 @@ export default class GraphDialog extends React.Component {
     const calculatedValues = initialConfig.calculatedValues || [];
 
     this.state = {
+      id: initialConfig.id || null, // Preserve existing ID for updates
       chartType: initialConfig.chartType || 'bar',
       xColumn: initialConfig.xColumn || '',
       yColumn: initialConfig.yColumn || '',
@@ -78,6 +79,7 @@ export default class GraphDialog extends React.Component {
       isStacked: initialConfig.isStacked || false,
       maxDataPoints: initialConfig.maxDataPoints || 1000,
       maxDataPointsInput: null,
+      showDeleteConfirmation: false,
     };
   }
 
@@ -104,6 +106,7 @@ export default class GraphDialog extends React.Component {
     if (this.valid()) {
       this.props.onConfirm({
         ...this.state,
+        className: this.props.className,
         xColumn: this.state.xColumn || null,
         yColumn: this.state.yColumn || null,
         valueColumn: this.state.valueColumn.length > 0 ? this.state.valueColumn : null,
@@ -113,23 +116,18 @@ export default class GraphDialog extends React.Component {
     }
   };
 
-  handleReset = () => {
-    this.setState({
-      chartType: 'bar',
-      xColumn: '',
-      yColumn: '',
-      valueColumn: [],
-      groupByColumn: [],
-      calculatedValues: [],
-      aggregationType: 'count',
-      title: '',
-      showLegend: true,
-      showGrid: true,
-      showAxisLabels: true,
-      isStacked: false,
-      maxDataPoints: 1000,
-      maxDataPointsInput: null,
-    });
+  handleDelete = () => {
+    this.setState({ showDeleteConfirmation: true });
+  };
+
+  confirmDelete = () => {
+    if (this.state.id && this.props.onDelete) {
+      this.props.onDelete(this.state.id);
+    }
+  };
+
+  cancelDelete = () => {
+    this.setState({ showDeleteConfirmation: false });
   };
 
   getColumnsByType(types) {
@@ -595,9 +593,21 @@ export default class GraphDialog extends React.Component {
   render() {
     const isEditing = this.props.initialConfig && Object.keys(this.props.initialConfig).length > 0;
 
-    const customFooter = (
+    const customFooter = this.state.showDeleteConfirmation ? (
       <div style={{ textAlign: 'center' }} className={styles.footer}>
-        <Button value="Reset" onClick={this.handleReset} color="red" />
+        <Button value="Cancel" onClick={this.cancelDelete} />
+        <Button
+          primary={true}
+          value="Confirm Delete"
+          color="red"
+          onClick={this.confirmDelete}
+        />
+      </div>
+    ) : (
+      <div style={{ textAlign: 'center' }} className={styles.footer}>
+        {isEditing && this.state.id && (
+          <Button value="Delete" onClick={this.handleDelete} color="red" />
+        )}
         <Button value="Cancel" onClick={this.props.onCancel} />
         <Button
           primary={true}
