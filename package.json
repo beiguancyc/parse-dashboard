@@ -102,6 +102,7 @@
     "eslint": "9.39.1",
     "eslint-plugin-jest": "29.5.0",
     "eslint-plugin-react": "7.37.5",
+    "get-port": "7.1.0",
     "globals": "16.5.0",
     "http-server": "14.1.1",
     "husky": "9.1.7",
@@ -109,7 +110,9 @@
     "jest-environment-jsdom": "30.0.5",
     "madge": "8.0.0",
     "marked": "15.0.12",
+    "mongodb-runner": "^5.7.0",
     "null-loader": "4.0.1",
+    "parse-server": "9.1.1",
     "prettier": "3.7.4",
     "puppeteer": "24.12.1",
     "react-test-renderer": "16.13.1",
@@ -124,6 +127,7 @@
     "typescript": "5.9.3",
     "webpack": "5.104.1",
     "webpack-cli": "6.0.1",
+    "ws": "8.18.0",
     "yaml": "2.8.0"
   },
   "scripts": {
@@ -141,7 +145,9 @@
     "prepare": "webpack --config webpack/publish.config.js --progress",
     "start": "node ./Parse-Dashboard/index.js",
     "madge:circular": "node_modules/.bin/madge ./src --circular",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "browser-control": "PARSE_DASHBOARD_BROWSER_CONTROL=true node ./Parse-Dashboard/index.js",
+    "browser-control:visible": "BROWSER_HEADLESS=false PARSE_DASHBOARD_BROWSER_CONTROL=true node ./Parse-Dashboard/index.js"
   },
   "bin": {
     "parse-dashboard": "./bin/parse-dashboard"
