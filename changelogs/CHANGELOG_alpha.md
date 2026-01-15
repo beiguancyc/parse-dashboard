@@ -1,3 +1,10 @@
+# [8.2.0-alpha.27](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.26...8.2.0-alpha.27) (2026-01-15)
+
+
+### Bug Fixes
+
+* Calculated value drop-down in menu bar overlaps with info panel buttons ([#3116](https://github.com/parse-community/parse-dashboard/issues/3116)) ([0f6f729](https://github.com/parse-community/parse-dashboard/commit/0f6f72996163f3db2507b0d08afe29fd78a4e03b))
+
 # [8.2.0-alpha.26](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.25...8.2.0-alpha.26) (2026-01-15)
 
 
