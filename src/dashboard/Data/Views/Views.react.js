@@ -273,6 +273,8 @@ class Views extends TableView {
                 type = 'Link';
               } else if (val.__type === 'Image') {
                 type = 'Image';
+              } else if (val.__type === 'Video') {
+                type = 'Video';
               } else {
                 type = 'Object';
               }
@@ -354,16 +356,24 @@ class Views extends TableView {
     return (
       <div>
         <LoaderContainer loading={loading} solid={false}>
-          <div className={tableStyles.content} style={{ overflowX: 'auto', paddingTop: 96 }}>
-            <div style={{ width: this.state.tableWidth }}>
+          <div style={{
+            position: 'fixed',
+            top: 96,
+            left: 300,
+            right: 0,
+            bottom: 0,
+            overflow: 'auto'
+          }}>
+            <div style={{ minWidth: this.state.tableWidth }}>
               <div
                 className={tableStyles.headers}
                 style={{
-                  width: this.state.tableWidth,
-                  right: 'auto',
                   position: 'sticky',
                   top: 0,
                   left: 0,
+                  right: 0,
+                  zIndex: 10,
+                  background: '#66637A',
                 }}
                 ref={this.headersRef}
               >
@@ -406,6 +416,8 @@ class Views extends TableView {
               type = 'Link';
             } else if (value.__type === 'Image') {
               type = 'Image';
+            } else if (value.__type === 'Video') {
+              type = 'Video';
             } else {
               type = 'Object';
             }
@@ -490,6 +502,43 @@ class Views extends TableView {
                 }}
               />
             );
+          } else if (type === 'Video') {
+            // Sanitize URL
+            let url = value.url;
+            if (
+              !url ||
+              url.match(/javascript/i) ||
+              url.match(/<script/i)
+            ) {
+              url = '#';
+            }
+
+            // Parse dimensions, ensuring they are positive numbers
+            const width = value.width && parseInt(value.width, 10) > 0 ? parseInt(value.width, 10) : null;
+            const height = value.height && parseInt(value.height, 10) > 0 ? parseInt(value.height, 10) : null;
+
+            // Create style object for scale-to-fit behavior
+            const videoStyle = {
+              maxWidth: width ? `${width}px` : '100%',
+              maxHeight: height ? `${height}px` : '100%',
+              objectFit: 'contain', // This ensures scale-to-fit behavior maintaining aspect ratio
+              display: 'block'
+            };
+
+            content = (
+              <video
+                src={url}
+                controls
+                style={videoStyle}
+                onError={(e) => {
+                  if (e.target && e.target.style) {
+                    e.target.style.display = 'none';
+                  }
+                }}
+              >
+                Your browser does not support the video tag.
+              </video>
+            );
           } else if (value === undefined) {
             content = '';
           } else {
@@ -561,31 +610,30 @@ class Views extends TableView {
 
       return (
         <div key={name} className={styles.headerWrap} style={{ width }}>
-          <span className={styles.headerText}>
-            <span className={styles.headerLabel}>{name}</span>
-            {isPointerColumn && (
-              <button
-                type="button"
-                className={styles.pointerIcon}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  this.handleOpenAllPointers(name);
-                  // Remove focus after action to follow UX best practices
-                  e.currentTarget.blur();
-                }}
-                aria-label={`Filter to show all pointers from ${name} column`}
-                title="Filter to show all pointers from this column"
-              >
-                <Icon
-                  name="right-outline"
-                  width={20}
-                  height={20}
-                  fill="white"
-                />
-              </button>
-            )}
-          </span>
+          <div className={styles.headerName}>{name}</div>
+          <div className={styles.headerType}>{columnType || 'String'}</div>
+          {isPointerColumn && (
+            <button
+              type="button"
+              className={styles.pointerIcon}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                this.handleOpenAllPointers(name);
+                // Remove focus after action to follow UX best practices
+                e.currentTarget.blur();
+              }}
+              aria-label={`Filter to show all pointers from ${name} column`}
+              title="Filter to show all pointers from this column"
+            >
+              <Icon
+                name="right-outline"
+                width={20}
+                height={20}
+                fill="white"
+              />
+            </button>
+          )}
           <DragHandle className={styles.handle} onDrag={delta => this.handleResize(i, delta)} />
         </div>
       );

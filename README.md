@@ -6,7 +6,7 @@
 [![Build Status](https://github.com/parse-community/parse-dashboard/workflows/ci/badge.svg?branch=release)](https://github.com/parse-community/parse-dashboard/actions?query=workflow%3Aci+branch%3Arelease)
 [![Snyk Badge](https://snyk.io/test/github/parse-community/parse-dashboard/badge.svg)](https://snyk.io/test/github/parse-community/parse-dashboard)
 
-[![Node Version](https://img.shields.io/badge/nodejs-18,_20,_22-green.svg?logo=node.js&style=flat)](https://nodejs.org/)
+[![Node Version](https://img.shields.io/badge/nodejs-18,_20,_22,_24-green.svg?logo=node.js&style=flat)](https://nodejs.org/)
 [![auto-release](https://img.shields.io/badge/%F0%9F%9A%80-auto--release-9e34eb.svg)](https://github.com/parse-community/parse-dashboard/releases)
 
 [![npm latest version](https://img.shields.io/npm/v/parse-dashboard/latest.svg)](https://www.npmjs.com/package/parse-dashboard)
@@ -30,6 +30,14 @@ Parse Dashboard is a standalone dashboard for managing your [Parse Server](https
     - [Node.js](#nodejs)
   - [Configuring Parse Dashboard](#configuring-parse-dashboard)
     - [Options](#options)
+      - [Root Options](#root-options)
+        - [App Options](#app-options)
+        - [Column Options](#column-options)
+        - [Script Options](#script-options)
+        - [Info Panel Options](#info-panel-options)
+        - [User Options](#user-options)
+      - [CLI \& Server Options](#cli--server-options)
+      - [Helper CLI Commands](#helper-cli-commands)
     - [File](#file)
     - [Environment variables](#environment-variables)
       - [Multiple apps](#multiple-apps)
@@ -42,16 +50,19 @@ Parse Dashboard is a standalone dashboard for managing your [Parse Server](https
     - [Prevent columns sorting](#prevent-columns-sorting)
     - [Custom order in the filter popup](#custom-order-in-the-filter-popup)
     - [Persistent Filters](#persistent-filters)
+    - [Keyboard Shortcuts](#keyboard-shortcuts)
     - [Scripts](#scripts)
     - [Resource Cache](#resource-cache)
 - [Running as Express Middleware](#running-as-express-middleware)
+- [Browser Control API (Development Only)](#browser-control-api-development-only)
 - [Deploying Parse Dashboard](#deploying-parse-dashboard)
   - [Preparing for Deployment](#preparing-for-deployment)
   - [Security Considerations](#security-considerations)
     - [Security Checks](#security-checks)
     - [Configuring Basic Authentication](#configuring-basic-authentication)
     - [Multi-Factor Authentication (One-Time Password)](#multi-factor-authentication-one-time-password)
-    - [Separating App Access Based on User Identity](#separating-app-access-based-on-user-identity)
+    - [Running Multiple Dashboard Replicas](#running-multiple-dashboard-replicas)
+      - [Using a Custom Session Store](#using-a-custom-session-store)
   - [Use Read-Only masterKey](#use-read-only-masterkey)
     - [Making an app read-only for all users](#making-an-app-read-only-for-all-users)
     - [Makings users read-only](#makings-users-read-only)
@@ -90,6 +101,7 @@ Parse Dashboard is a standalone dashboard for managing your [Parse Server](https
       - [Pointer](#pointer)
       - [Link](#link)
       - [Image](#image)
+      - [Video](#video)
 - [Contributing](#contributing)
 
 # Getting Started
@@ -135,11 +147,12 @@ Parse Dashboard automatically checks the Parse Server version when connecting an
 ### Node.js
 Parse Dashboard is continuously tested with the most recent releases of Node.js to ensure compatibility. We follow the [Node.js Long Term Support plan](https://github.com/nodejs/Release) and only test against versions that are officially supported and have not reached their end-of-life date.
 
-| Version    | Latest Version | End-of-Life | Compatible |
+| Version    | Minimum version | End-of-Life | Compatible |
 |------------|----------------|-------------|------------|
 | Node.js 18 | 18.20.4        | May 2025    | ✅ Yes      |
 | Node.js 20 | 20.18.0        | April 2026  | ✅ Yes      |
 | Node.js 22 | 22.9.0         | April 2027  | ✅ Yes      |
+| Node.js 24 | 24.0.0         | April 2028  | ✅ Yes      |
 
 ## Configuring Parse Dashboard
 
@@ -147,12 +160,12 @@ Parse Dashboard is continuously tested with the most recent releases of Node.js 
 
 This section provides a comprehensive reference for all Parse Dashboard configuration options that can be used in the configuration file, via CLI arguments, or as environment variables.
 
-#### Root Configuration Keys
+#### Root Options
 
 | Key | Type | Required | Default | CLI | Env Variable | Example | Description | Links to Details |
 |-----|------|----------|---------|-----|--------------|---------|-------------|------------------|
-| `apps` | Array&lt;Object&gt; | Yes | - | - | `PARSE_DASHBOARD_CONFIG` | `[{...}]` | Array of Parse Server apps to manage | [App Configuration](#app-configuration-apps-array) |
-| `users` | Array&lt;Object&gt; | No | - | - | - | `[{...}]` | User accounts for dashboard authentication | [User Configuration](#user-configuration-users) |
+| `apps` | Array&lt;Object&gt; | Yes | - | - | `PARSE_DASHBOARD_CONFIG` | `[{...}]` | Array of Parse Server apps to manage | [App Options](#app-options) |
+| `users` | Array&lt;Object&gt; | No | - | - | - | `[{...}]` | User accounts for dashboard authentication | [User Configuration](#user-options) |
 | `useEncryptedPasswords` | Boolean | No | `false` | - | - | `true` | Use bcrypt hashes instead of plain text passwords | - |
 | `trustProxy` | Boolean \| Number | No | `false` | `--trustProxy` | `PARSE_DASHBOARD_TRUST_PROXY` | `1` | Trust X-Forwarded-* headers when behind proxy | - |
 | `iconsFolder` | String | No | - | - | - | `"icons"` | Folder for app icons (relative or absolute path) | - |
@@ -160,7 +173,7 @@ This section provides a comprehensive reference for all Parse Dashboard configur
 | `enableResourceCache` | Boolean | No | `false` | - | - | `true` | Enable browser caching of dashboard resources | - |
 
 
-##### App Configuration (`apps` array)
+##### App Options
 
 | Parameter                  | Type                | Optional | Default   | CLI                  | Env Variable                         | Example                           | Description                                                                                                  |
 | -------------------------- | ------------------- | -------- | --------- | -------------------- | ------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -193,7 +206,7 @@ This section provides a comprehensive reference for all Parse Dashboard configur
 | `scripts`                  | Array&lt;Object&gt; | yes      | `[]`      | -                    | -                                    | `[{...}]`                         | Scripts for this app. See [scripts table below](#scripts).                                                   |
 | `infoPanel`                | Array&lt;Object&gt; | yes      | -         | -                    | -                                    | `[{...}]`                         | Info panel config. See [info panel table below](#info-panel).                                                |
 
-##### Column Preference Configuration (`apps[].columnPreference.<className>[]`)
+##### Column Options
 
 Each class in `columnPreference` can have an array of column configurations:
 
@@ -204,7 +217,7 @@ Each class in `columnPreference` can have an array of column configurations:
 | `preventSort`     | Boolean | yes      | `false` | `true`        | Prevent this column from being sortable.           |
 | `filterSortToTop` | Boolean | yes      | `false` | `true`        | Sort this column to the top in filter popup.       |
 
-##### Scripts Configuration (`apps[].scripts[]`)
+##### Script Options
 
 | Parameter                 | Type                                       | Optional | Default | Example         | Description                                       |
 | --------------------------|--------------------------------------------|----------|---------|-----------------|---------------------------------------------------|
@@ -215,7 +228,7 @@ Each class in `columnPreference` can have an array of column configurations:
 | `showConfirmationDialog`  | Boolean                                    | yes      | `false` | `true`          | Show confirmation dialog before execution.        |
 | `confirmationDialogStyle` | String                                     | yes      | `info`  | `critical`      | Dialog style: `info` (blue) or `critical` (red).  |
 
-##### Info Panel Configuration (`apps[].infoPanel[]`)
+##### Info Panel Options
 
 | Parameter           | Type                | Optional | Default | Example            | Description                                   |
 | --------------------|---------------------|----------|---------|--------------------|-----------------------------------------------|
@@ -229,7 +242,7 @@ Each class in `columnPreference` can have an array of column configurations:
 | `prefetchAudio`     | Boolean             | yes      | `true`  | `false`            | Whether to prefetch audio content.            |
 
 
-##### User Configuration (`users[]`)
+##### User Options
 
 | Parameter         | Type                | Optional | Default  | CLI              | Env Variable                    | Example              | Description                            |
 | ------------------|---------------------|----------|----------|------------------|---------------------------------|----------------------|----------------------------------------|
@@ -257,6 +270,7 @@ Each class in `columnPreference` can have an array of column configurations:
 | `cookieSessionSecret` | String  | yes      | Random       | `--cookieSessionSecret` | `PARSE_DASHBOARD_COOKIE_SESSION_SECRET`  | `"secret"`      | Secret for session cookies (for multi-server).   |
 | `cookieSessionMaxAge` | Number  | yes      | Session-only | `--cookieSessionMaxAge` | `PARSE_DASHBOARD_COOKIE_SESSION_MAX_AGE` | `3600`          | Session cookie expiration (seconds).             |
 | `dev`                 | Boolean | yes      | `false`      | `--dev`                 | -                                        | -               | Development mode (**DO NOT use in production**). |
+| `browserControl`      | Boolean | yes      | `false`      | -                       | `PARSE_DASHBOARD_BROWSER_CONTROL`        | `true`          | Enable Browser Control API (dev only, **NEVER in production**). See [Browser Control](Parse-Dashboard/browser-control/). |
 | `config`              | String  | yes      | -            | `--config`              | -                                        | `"config.json"` | Path to JSON configuration file.                 |
 
 #### Helper CLI Commands
@@ -519,6 +533,12 @@ For example:
 
 You can conveniently create a filter definition without having to write it by hand by first saving a filter in the data browser, then exporting the filter definition under *App Settings > Export Class Preferences*.
 
+### Keyboard Shortcuts
+
+Configure custom keyboard shortcuts for dashboard actions in **App Settings > Keyboard Shortcuts**.
+
+Delete a shortcut key to disable the shortcut.
+
 ### Scripts
 
 You can specify scripts to execute Cloud Functions with the `scripts` option:
@@ -710,6 +730,47 @@ app.use('/dashboard', dashboard);
 var httpServer = require('http').createServer(app);
 httpServer.listen(4040);
 ```
+
+## Browser Control API (Development Only)
+
+The Browser Control API allows AI agents to interact with Parse Dashboard through an automated browser during feature implementation and debugging. This is a **development-only tool** designed for real-time verification during active development.
+
+### ⚠️ Security Requirements
+
+The Browser Control API uses **defense-in-depth** with multiple security layers:
+
+1. **Config-level opt-in** (Required)
+   - Must set `"browserControl": true` in your config file
+   - Prevents accidental enablement via environment variables
+
+2. **Production environment blocking**
+   - Automatically disabled when `NODE_ENV=production`
+   - Cannot be overridden, even with explicit flags
+
+3. **Development-only deployment**
+   - Only accessible in `dev` mode or with `PARSE_DASHBOARD_BROWSER_CONTROL=true`
+
+### Configuration
+
+Add to your `parse-dashboard-config.json`:
+
+```json
+{
+  "browserControl": true,
+  "apps": [...],
+  "users": [...]
+}
+```
+
+**⚠️ CRITICAL**: Never deploy with `browserControl: true` in production. Remove this field or set to `false` before deploying.
+
+### Usage
+
+```bash
+npm run browser-control
+```
+
+For complete documentation, API reference, and examples, see the [Browser Control README](Parse-Dashboard/browser-control/README.md).
 
 # Deploying Parse Dashboard
 
@@ -1622,6 +1683,24 @@ Example:
 
 > [!Warning]
 > The URL will be directly invoked by the browser when trying to display the image. For security reasons, make sure you either control the full URL, including the image file name, or sanitize the URL before returning it to the dashboard. URLs containing `javascript:` or `<script` will be blocked automatically and replaced with a placeholder.
+
+#### Video
+
+Videos are rendered directly in the output table with a `<video>` tag that includes playback controls. The content mode is always "scale to fit", meaning that the video maintains its aspect ratio within the specified dimensions.
+
+Example:
+
+```json
+{
+  "__type": "Video",
+  "url": "https://example.com/video.mp4",
+  "width": "320",
+  "height": "240"
+}
+```
+
+> [!Warning]
+> The URL will be directly invoked by the browser when trying to display the video. For security reasons, make sure you either control the full URL, including the video file name, or sanitize the URL before returning it to the dashboard. URLs containing `javascript:` or `<script` will be blocked automatically and replaced with a placeholder.
 
 # Contributing
 

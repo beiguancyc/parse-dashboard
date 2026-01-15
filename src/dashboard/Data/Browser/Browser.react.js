@@ -38,6 +38,8 @@ import { ActionTypes } from 'lib/stores/SchemaStore';
 import stringCompare from 'lib/stringCompare';
 import subscribeTo from 'lib/subscribeTo';
 import { withRouter } from 'lib/withRouter';
+import FilterPreferencesManager from 'lib/FilterPreferencesManager';
+import { prefersServerStorage } from 'lib/StoragePreferences';
 import Parse from 'parse';
 import React from 'react';
 import { Helmet } from 'react-helmet';
@@ -45,6 +47,7 @@ import { useBeforeUnload } from 'react-router-dom';
 import BrowserFooter from './BrowserFooter.react';
 
 const SELECTED_ROWS_MESSAGE = 'There are selected rows. Are you sure you want to leave this page?';
+const EMPTY_FILTERS_ARRAY = [];
 
 function SelectedRowsNavigationPrompt({ when }) {
   const message = SELECTED_ROWS_MESSAGE;
@@ -129,6 +132,7 @@ class Browser extends DashboardView {
     this.subsection = 'Browser';
     this.noteTimeout = null;
     this.currentQuery = null;
+    this.filterPreferencesManager = null;
     const limit = window.localStorage?.getItem('browserLimit');
 
     this.state = {
@@ -188,7 +192,12 @@ class Browser extends DashboardView {
       AggregationPanelData: {},
       isLoadingInfoPanel: false,
       errorAggregatedData: {},
+      classFilters: {}, // Map of className -> filters array
+      selectedCellsCount: 0,
+      selectedData: [],
     };
+
+    this._isMounted = false;
 
     this.addLocation = this.addLocation.bind(this);
     this.allClassesSchema = this.getAllClassesSchema.bind(this);
@@ -199,6 +208,7 @@ class Browser extends DashboardView {
     this.fetchRelationCount = this.fetchRelationCount.bind(this);
     this.fetchNextPage = this.fetchNextPage.bind(this);
     this.updateFilters = this.updateFilters.bind(this);
+    this.updateURL = this.updateURL.bind(this);
     this.showRemoveColumn = this.showRemoveColumn.bind(this);
     this.showDeleteRows = this.showDeleteRows.bind(this);
     this.showDropClass = this.showDropClass.bind(this);
@@ -264,6 +274,7 @@ class Browser extends DashboardView {
     this.classAndCloudFuntionMap = this.classAndCloudFuntionMap.bind(this);
     this.fetchAggregationPanelData = this.fetchAggregationPanelData.bind(this);
     this.setAggregationPanelData = this.setAggregationPanelData.bind(this);
+    this.handleCellSelectionChange = this.handleCellSelectionChange.bind(this);
 
     // Handle for the ongoing info panel cloud function request
     this.currentInfoPanelQuery = null;
@@ -292,15 +303,66 @@ class Browser extends DashboardView {
   }
 
   componentDidMount() {
+    this._isMounted = true;
     this.addLocation(this.props.params.appId);
     window.addEventListener('mouseup', this.onMouseUpRowCheckBox);
     get('/parse-dashboard-config.json').then(data => {
       this.setState({ configData: data });
       this.classAndCloudFuntionMap(this.state.configData);
     });
+
+    // Initialize FilterPreferencesManager
+    if (this.context) {
+      this.filterPreferencesManager = new FilterPreferencesManager(this.context);
+      // Load all class filters if schema is already available
+      if (this.props.schema?.data?.get('classes')) {
+        this.loadAllClassFilters();
+      }
+    }
+  }
+
+  async loadAllClassFilters(propsToUse) {
+    if (!this.filterPreferencesManager) {
+      return;
+    }
+
+    // Use provided props or fall back to this.props
+    const props = propsToUse || this.props;
+    const schema = props.schema;
+    if (!schema || !schema.data) {
+      return;
+    }
+
+    const classFilters = {};
+
+    // Load filters for all classes
+    const classList = schema.data.get('classes');
+    if (classList) {
+      const classNames = Object.keys(classList.toObject());
+      await Promise.all(
+        classNames.map(async (className) => {
+          try {
+            const filters = await this.filterPreferencesManager.getFilters(
+              this.context.applicationId,
+              className
+            );
+            classFilters[className] = filters || [];
+          } catch (error) {
+            console.error(`Failed to load filters for class ${className}:`, error);
+            classFilters[className] = [];
+          }
+        })
+      );
+    }
+
+    // Check if component is still mounted before updating state
+    if (this._isMounted) {
+      this.setState({ classFilters });
+    }
   }
 
   componentWillUnmount() {
+    this._isMounted = false;
     if (this.currentQuery) {
       this.currentQuery.cancel();
     }
@@ -339,6 +401,15 @@ class Browser extends DashboardView {
         nextProps.schema.data.get('classes')
       );
       this.redirectToFirstClass(nextProps.schema.data.get('classes'), nextContext);
+    }
+
+    // Load filters when schema becomes available or changes
+    if (
+      nextProps.schema?.data?.get('classes') &&
+      (!this.props.schema?.data?.get('classes') ||
+        this.props.params.appId !== nextProps.params.appId)
+    ) {
+      this.loadAllClassFilters(nextProps);
     }
   }
 
@@ -416,6 +487,11 @@ class Browser extends DashboardView {
   setAggregationPanelData(data) {
     this.setState({ AggregationPanelData: data });
   }
+
+  handleCellSelectionChange(selectedCellsCount, selectedData) {
+    this.setState({ selectedCellsCount, selectedData });
+  }
+
   addLocation(appId) {
     if (window.localStorage) {
       const currentSearch = this.props.location?.search;
@@ -490,6 +566,7 @@ class Browser extends DashboardView {
 
   async prefetchData(props, context) {
     const filters = this.extractFiltersFromQuery(props);
+    const pagination = this.extractPaginationFromQuery(props);
     const { className, entityId, relationName } = props.params;
     const isRelationRoute = entityId && relationName;
 
@@ -504,6 +581,11 @@ class Browser extends DashboardView {
       const parent = await parentObjectQuery.get(entityId, { useMasterKey });
       relation = parent.relation(relationName);
     }
+
+    // Use pagination from URL if available, otherwise keep current state or use defaults
+    const skip = pagination.skip;
+    const limit = pagination.limit !== null ? pagination.limit : this.state.limit;
+
     this.setState(
       {
         data: isEditFilterMode ? [] : null, // Set empty array in edit mode to avoid loading
@@ -512,6 +594,8 @@ class Browser extends DashboardView {
         ordering: ColumnPreferences.getColumnSort(false, context.applicationId, className),
         selection: {},
         relation: isRelationRoute ? relation : null,
+        skip,
+        limit,
       },
       () => {
         // Only fetch data if not in edit filter mode
@@ -565,6 +649,66 @@ class Browser extends DashboardView {
       );
     }
     return filters;
+  }
+
+  extractPaginationFromQuery(props) {
+    const pagination = { skip: 0, limit: null };
+    if (!props || !props.location || !props.location.search) {
+      return pagination;
+    }
+    const query = new URLSearchParams(props.location.search);
+    if (query.has('skip')) {
+      const skip = parseInt(query.get('skip'), 10);
+      if (!isNaN(skip) && skip >= 0) {
+        pagination.skip = skip;
+      }
+    }
+    if (query.has('limit')) {
+      const limit = parseInt(query.get('limit'), 10);
+      if (!isNaN(limit) && limit > 0) {
+        pagination.limit = limit;
+      }
+    }
+    return pagination;
+  }
+
+  updateURL(newSkip = null, newLimit = null) {
+    const source = this.props.params.className;
+    if (!source || this.state.relation) {
+      return; // Don't update URL for relations
+    }
+
+    const skip = newSkip !== null ? newSkip : this.state.skip;
+    const limit = newLimit !== null ? newLimit : this.state.limit;
+
+    // Build query parameters preserving existing ones
+    const currentUrlParams = new URLSearchParams(window.location.search);
+    const queryParams = new URLSearchParams();
+
+    // Preserve filters and filterId
+    if (currentUrlParams.has('filters')) {
+      queryParams.set('filters', currentUrlParams.get('filters'));
+    }
+    if (currentUrlParams.has('filterId')) {
+      queryParams.set('filterId', currentUrlParams.get('filterId'));
+    }
+    if (currentUrlParams.has('editFilter')) {
+      queryParams.set('editFilter', currentUrlParams.get('editFilter'));
+    }
+
+    // Add pagination parameters (only if non-default)
+    if (skip > 0) {
+      queryParams.set('skip', skip.toString());
+    }
+    if (limit !== 100) { // Only include limit if it's not the default
+      queryParams.set('limit', limit.toString());
+    }
+
+    const queryString = queryParams.toString();
+    const url = queryString ? `browser/${source}?${queryString}` : `browser/${source}`;
+
+    // Push new history entry instead of replacing to enable browser back button
+    this.props.navigate(generatePath(this.context, url));
   }
 
   redirectToFirstClass(classList, context) {
@@ -1268,33 +1412,32 @@ class Browser extends DashboardView {
       const currentUrlParams = new URLSearchParams(window.location.search);
       const currentFilterId = currentUrlParams.get('filterId');
 
-      let url = `browser/${source}`;
-      if (filters.size === 0) {
-        // If no filters, don't include any query parameters
-        url = `browser/${source}`;
-      } else {
-        // Build query parameters
-        const queryParams = new URLSearchParams();
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+
+      if (filters.size > 0) {
         queryParams.set('filters', _filters);
-
-        // Preserve filterId if it exists in current URL
-        if (currentFilterId) {
-          queryParams.set('filterId', currentFilterId);
-        }
-
-        url = `browser/${source}?${queryParams.toString()}`;
       }
+
+      // Preserve filterId if it exists in current URL
+      if (currentFilterId) {
+        queryParams.set('filterId', currentFilterId);
+      }
+
+      // Preserve pagination if not default (skip is reset to 0 when filters change)
+      if (this.state.limit !== 100) {
+        queryParams.set('limit', this.state.limit.toString());
+      }
+
+      const queryString = queryParams.toString();
+      const url = queryString ? `browser/${source}?${queryString}` : `browser/${source}`;
 
       // filters param change is making the fetch call
       this.props.navigate(generatePath(this.context, url));
     }
-
-    this.setState({
-      skip: 0,
-    });
   }
 
-  saveFilters(filters, name, relativeDate, filterId = null) {
+  async saveFilters(filters, name, relativeDate, filterId = null) {
     const jsonFilters = filters.toJSON();
     if (relativeDate && jsonFilters?.length) {
       for (let i = 0; i < jsonFilters.length; i++) {
@@ -1314,10 +1457,26 @@ class Browser extends DashboardView {
     }
 
     const _filters = JSON.stringify(jsonFilters);
+    const className = this.props.params.className;
+
+    // Use server-loaded filters from state if available, otherwise fallback to local storage
+    const existingFilters = this.state.classFilters[className] || [];
+
     const preferences = ClassPreferences.getPreferences(
       this.context.applicationId,
-      this.props.params.className
+      className
     );
+
+    // Initialize preferences.filters from state if needed
+    if (!preferences.filters) {
+      preferences.filters = [];
+    }
+
+    // Merge server filters into preferences for the update logic
+    // Use server filters as source of truth
+    const serverFilterIds = new Set(existingFilters.filter(f => f.id).map(f => f.id));
+    const localOnlyFilters = preferences.filters.filter(f => !f.id || !serverFilterIds.has(f.id));
+    preferences.filters = [...existingFilters, ...localOnlyFilters];
 
     let newFilterId = filterId;
 
@@ -1364,15 +1523,16 @@ class Browser extends DashboardView {
         });
       }
     } else {
-      // Check if this is updating a legacy filter (no filterId but filter content matches existing filter without ID)
-      const existingLegacyFilterIndex = preferences.filters.findIndex(filter =>
-        !filter.id && filter.name === name && filter.filter === _filters
+      // Check if this is updating an existing filter by name and content match
+      // (legacy filters get auto-assigned UUIDs when read, so we match by content)
+      const existingFilterIndex = preferences.filters.findIndex(filter =>
+        filter.name === name && filter.filter === _filters
       );
 
-      if (existingLegacyFilterIndex !== -1) {
-        // Convert legacy filter to modern filter by adding an ID
-        newFilterId = crypto.randomUUID();
-        preferences.filters[existingLegacyFilterIndex] = {
+      if (existingFilterIndex !== -1) {
+        // Update existing filter, keeping its ID
+        newFilterId = preferences.filters[existingFilterIndex].id;
+        preferences.filters[existingFilterIndex] = {
           name,
           id: newFilterId,
           filter: _filters,
@@ -1388,11 +1548,31 @@ class Browser extends DashboardView {
       }
     }
 
-    ClassPreferences.updatePreferences(
-      preferences,
-      this.context.applicationId,
-      this.props.params.className
-    );
+    // Use FilterPreferencesManager if available, otherwise fallback to local storage
+    if (this.filterPreferencesManager) {
+      const filterToSave = {
+        id: newFilterId,
+        name,
+        className: this.props.params.className,
+        filter: _filters,
+      };
+      await this.filterPreferencesManager.saveFilter(
+        this.context.applicationId,
+        this.props.params.className,
+        filterToSave,
+        preferences.filters
+      );
+    } else {
+      // Fallback to local storage
+      ClassPreferences.updatePreferences(
+        preferences,
+        this.context.applicationId,
+        this.props.params.className
+      );
+    }
+
+    // Reload filters for this class to update the sidebar
+    await this.reloadClassFilters(this.props.params.className);
 
     super.forceUpdate();
 
@@ -1400,7 +1580,28 @@ class Browser extends DashboardView {
     return newFilterId;
   }
 
-  deleteFilter(filterIdOrObject) {
+  async reloadClassFilters(className) {
+    if (!this.filterPreferencesManager) {
+      return;
+    }
+
+    try {
+      const filters = await this.filterPreferencesManager.getFilters(
+        this.context.applicationId,
+        className
+      );
+      this.setState(prevState => ({
+        classFilters: {
+          ...prevState.classFilters,
+          [className]: filters || []
+        }
+      }));
+    } catch (error) {
+      console.error(`Failed to reload filters for class ${className}:`, error);
+    }
+  }
+
+  async deleteFilter(filterIdOrObject) {
     const preferences = ClassPreferences.getPreferences(
       this.context.applicationId,
       this.props.params.className
@@ -1425,12 +1626,26 @@ class Browser extends DashboardView {
         }
       }
 
-      ClassPreferences.updatePreferences(
-        { ...preferences, filters: updatedFilters },
-        this.context.applicationId,
-        this.props.params.className
-      );
+      // Use FilterPreferencesManager if available, otherwise fallback to local storage
+      if (this.filterPreferencesManager) {
+        await this.filterPreferencesManager.deleteFilter(
+          this.context.applicationId,
+          this.props.params.className,
+          filterIdOrObject,
+          updatedFilters
+        );
+      } else {
+        // Fallback to local storage
+        ClassPreferences.updatePreferences(
+          { ...preferences, filters: updatedFilters },
+          this.context.applicationId,
+          this.props.params.className
+        );
+      }
     }
+
+    // Reload filters for this class to update the sidebar
+    await this.reloadClassFilters(this.props.params.className);
 
     super.forceUpdate();
   }
@@ -2263,13 +2478,24 @@ class Browser extends DashboardView {
     }
     const allCategories = [];
     for (const row of [...special, ...categories]) {
-      const { filters = [] } = ClassPreferences.getPreferences(
-        this.context.applicationId,
-        row.name
-      );
-      // Set filters sorted alphabetically
-      row.filters = filters.sort((a, b) => a.name.localeCompare(b.name));
-      allCategories.push(row);
+      let filters = this.state.classFilters[row.name];
+
+      // Fallback to local storage ONLY if not using server storage and filters not loaded yet
+      if (filters === undefined &&
+          (!this.filterPreferencesManager?.isServerConfigEnabled() ||
+           !prefersServerStorage(this.context.applicationId))) {
+        const prefs = ClassPreferences.getPreferences(this.context.applicationId, row.name);
+        filters = prefs?.filters || [];
+      } else if (filters === undefined) {
+        filters = [];
+      }
+
+      // Set filters sorted alphabetically and create a new row object to trigger re-render
+      const sortedFilters = filters.sort((a, b) => a.name.localeCompare(b.name));
+      allCategories.push({
+        ...row,
+        filters: sortedFilters
+      });
     }
 
     return (
@@ -2458,6 +2684,7 @@ class Browser extends DashboardView {
               perms={this.state.clp[className]}
               schema={this.props.schema}
               filters={this.state.filters}
+              savedFilters={this.state.classFilters[className] || EMPTY_FILTERS_ARRAY}
               onFilterChange={this.updateFilters}
               onFilterSave={(...args) => this.saveFilters(...args)}
               onDeleteFilter={this.deleteFilter}
@@ -2526,21 +2753,26 @@ class Browser extends DashboardView {
               appName={this.props.params.appId}
               limit={this.state.limit}
               skip={this.state.skip}
+              onCellSelectionChange={this.handleCellSelectionChange}
             />
             <BrowserFooter
               skip={this.state.skip}
               setSkip={skip => {
-                this.setState({ skip });
-                this.updateOrdering(this.state.ordering);
+                this.setState({ skip }, () => {
+                  this.updateURL(skip, null);
+                });
               }}
               count={count}
               limit={this.state.limit}
               setLimit={limit => {
-                this.setState({ limit });
-                this.updateOrdering(this.state.ordering);
+                this.setState({ limit, skip: 0 }, () => {
+                  this.updateURL(0, limit);
+                });
               }}
               hasSelectedRows={Object.keys(this.state.selection).length > 0}
               selectedRowsMessage={SELECTED_ROWS_MESSAGE}
+              selectedCellsCount={this.state.selectedCellsCount}
+              selectedData={this.state.selectedData}
             />
           </>
         );
