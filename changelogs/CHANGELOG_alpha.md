@@ -1,3 +1,10 @@
+# [8.2.0-alpha.26](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.25...8.2.0-alpha.26) (2026-01-15)
+
+
+### Features
+
+* Add AI agent browser control for autonomous development ([#3114](https://github.com/parse-community/parse-dashboard/issues/3114)) ([5940455](https://github.com/parse-community/parse-dashboard/commit/59404554fea684fcd4dba86d4693d354844f7475))
+
 # [8.2.0-alpha.25](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.24...8.2.0-alpha.25) (2026-01-14)
 
 
