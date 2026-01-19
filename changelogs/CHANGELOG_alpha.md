@@ -1,3 +1,199 @@
+# [8.2.0-alpha.27](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.26...8.2.0-alpha.27) (2026-01-15)
+
+
+### Bug Fixes
+
+* Calculated value drop-down in menu bar overlaps with info panel buttons ([#3116](https://github.com/parse-community/parse-dashboard/issues/3116)) ([0f6f729](https://github.com/parse-community/parse-dashboard/commit/0f6f72996163f3db2507b0d08afe29fd78a4e03b))
+
+# [8.2.0-alpha.26](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.25...8.2.0-alpha.26) (2026-01-15)
+
+
+### Features
+
+* Add AI agent browser control for autonomous development ([#3114](https://github.com/parse-community/parse-dashboard/issues/3114)) ([5940455](https://github.com/parse-community/parse-dashboard/commit/59404554fea684fcd4dba86d4693d354844f7475))
+
+# [8.2.0-alpha.25](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.24...8.2.0-alpha.25) (2026-01-14)
+
+
+### Features
+
+* Add storing data browser graphs to support multiple graphs per class ([#3113](https://github.com/parse-community/parse-dashboard/issues/3113)) ([e76f605](https://github.com/parse-community/parse-dashboard/commit/e76f6051dcf3df0406aa58279d68f6f5f1bcfbe6))
+
+# [8.2.0-alpha.24](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.23...8.2.0-alpha.24) (2026-01-13)
+
+
+### Bug Fixes
+
+* Graph panel covers right-most columns of data browser table ([#3112](https://github.com/parse-community/parse-dashboard/issues/3112)) ([00b0d70](https://github.com/parse-community/parse-dashboard/commit/00b0d704fb74dc3daafe9d81de2c752b71da6cf8))
+
+# [8.2.0-alpha.23](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.22...8.2.0-alpha.23) (2026-01-13)
+
+
+### Bug Fixes
+
+* Graph panel shows date tick labels on x-axis in local time instead of UTC ([#3111](https://github.com/parse-community/parse-dashboard/issues/3111)) ([85d4946](https://github.com/parse-community/parse-dashboard/commit/85d4946738d1a2b494cd9a18a9d33e99674ad671))
+
+# [8.2.0-alpha.22](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.21...8.2.0-alpha.22) (2026-01-13)
+
+
+### Features
+
+* Add graph panel for data visualization ([#3110](https://github.com/parse-community/parse-dashboard/issues/3110)) ([1e15e27](https://github.com/parse-community/parse-dashboard/commit/1e15e2727900dc06bafdd9ba48fce664b924f906))
+
+# [8.2.0-alpha.21](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.20...8.2.0-alpha.21) (2026-01-11)
+
+
+### Bug Fixes
+
+* Some context menu sub-menu lists don't change background color on mouse hover in Safari browser ([#3109](https://github.com/parse-community/parse-dashboard/issues/3109)) ([6269d18](https://github.com/parse-community/parse-dashboard/commit/6269d184ba86b39747ddaebea5e6f10702dda3f1))
+
+# [8.2.0-alpha.20](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.19...8.2.0-alpha.20) (2026-01-11)
+
+
+### Bug Fixes
+
+* Saved filter is not recognized in data browser filter dialog ([#3108](https://github.com/parse-community/parse-dashboard/issues/3108)) ([8a4ce15](https://github.com/parse-community/parse-dashboard/commit/8a4ce159a384f8b666ebed8190ed0fb922538004))
+
+# [8.2.0-alpha.19](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.18...8.2.0-alpha.19) (2026-01-10)
+
+
+### Bug Fixes
+
+* Context menu in data browser disappears behind menu bar ([#3106](https://github.com/parse-community/parse-dashboard/issues/3106)) ([2c6c471](https://github.com/parse-community/parse-dashboard/commit/2c6c4715948bb36633c34dee0c2103044b7be8c9))
+
+# [8.2.0-alpha.18](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.17...8.2.0-alpha.18) (2026-01-07)
+
+
+### Bug Fixes
+
+* Header row in View table disappears when scrolling up ([#3105](https://github.com/parse-community/parse-dashboard/issues/3105)) ([2923e86](https://github.com/parse-community/parse-dashboard/commit/2923e86be1d0378906d83d411da65fa0f03aa68d))
+
+# [8.2.0-alpha.17](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.16...8.2.0-alpha.17) (2026-01-06)
+
+
+### Features
+
+* Auto-expand filter list when clicking on class in data browser ([#3101](https://github.com/parse-community/parse-dashboard/issues/3101)) ([30a733c](https://github.com/parse-community/parse-dashboard/commit/30a733c52db88350193681f2e05c0b754137f09c))
+
+# [8.2.0-alpha.16](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.15...8.2.0-alpha.16) (2025-12-28)
+
+
+### Performance Improvements
+
+* Remove unnecessary data fetches from data browser pagination ([#3098](https://github.com/parse-community/parse-dashboard/issues/3098)) ([bc59998](https://github.com/parse-community/parse-dashboard/commit/bc5999864c6ace4fcd15947a7d7e93322f141c6a))
+
+# [8.2.0-alpha.15](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.14...8.2.0-alpha.15) (2025-12-28)
+
+
+### Bug Fixes
+
+*  Data browser pagination is ignored when using browser navigation or page reload ([#3097](https://github.com/parse-community/parse-dashboard/issues/3097)) ([bcc4d5f](https://github.com/parse-community/parse-dashboard/commit/bcc4d5f88587b2bec2654ab5dcc3b85be717e3a1))
+
+# [8.2.0-alpha.14](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.13...8.2.0-alpha.14) (2025-12-23)
+
+
+### Performance Improvements
+
+* Add local caching for server-stored settings to reduce loading from server ([#3094](https://github.com/parse-community/parse-dashboard/issues/3094)) ([409973a](https://github.com/parse-community/parse-dashboard/commit/409973a03cc59fb2253bfc314ccd0afb95d8ec94))
+
+# [8.2.0-alpha.13](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.12...8.2.0-alpha.13) (2025-12-23)
+
+
+### Features
+
+* Add confirmation dialog to handle conflicts when migrating settings to server ([#3092](https://github.com/parse-community/parse-dashboard/issues/3092)) ([ae50b8d](https://github.com/parse-community/parse-dashboard/commit/ae50b8dadfbdb05d8771844d6505c7c177a7e375))
+
+# [8.2.0-alpha.12](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.11...8.2.0-alpha.12) (2025-12-23)
+
+
+### Features
+
+* Add storing data browser filters on server ([#3090](https://github.com/parse-community/parse-dashboard/issues/3090)) ([b991734](https://github.com/parse-community/parse-dashboard/commit/b991734bf792ece42099360f01da1608b915d86d))
+
+# [8.2.0-alpha.11](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.10...8.2.0-alpha.11) (2025-12-16)
+
+
+### Features
+
+* Add getting related records to context menu of info panel header ([#3083](https://github.com/parse-community/parse-dashboard/issues/3083)) ([2623802](https://github.com/parse-community/parse-dashboard/commit/2623802b3631206b9a23e3d0e442a8d650b1bc12))
+
+# [8.2.0-alpha.10](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.9...8.2.0-alpha.10) (2025-12-16)
+
+
+### Bug Fixes
+
+* Right-click on info panel header selects the object ([#3082](https://github.com/parse-community/parse-dashboard/issues/3082)) ([ae87114](https://github.com/parse-community/parse-dashboard/commit/ae87114131518b8f921946d24bc083930ed98fab))
+
+# [8.2.0-alpha.9](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.8...8.2.0-alpha.9) (2025-12-16)
+
+
+### Bug Fixes
+
+* Prefetch for multiple info panels in data browser doesn't refresh stale cached data ([#3080](https://github.com/parse-community/parse-dashboard/issues/3080)) ([e71d4e6](https://github.com/parse-community/parse-dashboard/commit/e71d4e62beef712949bf72c690fe31813907b8a0))
+
+# [8.2.0-alpha.8](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.7...8.2.0-alpha.8) (2025-12-16)
+
+
+### Features
+
+* Allow selecting objects by click-dragging over info panel headers ([#3074](https://github.com/parse-community/parse-dashboard/issues/3074)) ([d6ef86c](https://github.com/parse-community/parse-dashboard/commit/d6ef86c138531b628748b4e8823a9f97269bfbe9))
+
+# [8.2.0-alpha.7](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.6...8.2.0-alpha.7) (2025-12-15)
+
+
+### Features
+
+* Add keyboard shortcuts for quick actions in data browser ([#3073](https://github.com/parse-community/parse-dashboard/issues/3073)) ([858d0cc](https://github.com/parse-community/parse-dashboard/commit/858d0cca71e84f26342e32b10442138f4b92b634))
+
+# [8.2.0-alpha.6](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.5...8.2.0-alpha.6) (2025-12-13)
+
+
+### Features
+
+* Execute scripts via right-click on info panel header column ([#3068](https://github.com/parse-community/parse-dashboard/issues/3068)) ([2983741](https://github.com/parse-community/parse-dashboard/commit/2983741a05327c86df8d22bd9baa857185357c5c))
+
+# [8.2.0-alpha.5](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.4...8.2.0-alpha.5) (2025-12-13)
+
+
+### Bug Fixes
+
+* Data browser table headers misaligned when scrolling horizontally ([#3067](https://github.com/parse-community/parse-dashboard/issues/3067)) ([f495dd1](https://github.com/parse-community/parse-dashboard/commit/f495dd10288dc1372d9e01ca23550963c6a95f22))
+
+# [8.2.0-alpha.4](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.3...8.2.0-alpha.4) (2025-12-10)
+
+
+### Features
+
+* Add support for `Video` type in View table to display videos ([#3061](https://github.com/parse-community/parse-dashboard/issues/3061)) ([bd4aa4f](https://github.com/parse-community/parse-dashboard/commit/bd4aa4fc1beafd30f1aa29e352bd75793633ec3a))
+
+# [8.2.0-alpha.3](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.2...8.2.0-alpha.3) (2025-12-07)
+
+
+### Bug Fixes
+
+* Batch-navigation is active even if info panels are not visible ([#3053](https://github.com/parse-community/parse-dashboard/issues/3053)) ([91b544a](https://github.com/parse-community/parse-dashboard/commit/91b544a11cba5954c85e41eed7183c5dd11cb954))
+
+# [8.2.0-alpha.2](https://github.com/parse-community/parse-dashboard/compare/8.2.0-alpha.1...8.2.0-alpha.2) (2025-12-04)
+
+
+### Bug Fixes
+
+* Info panel covers whole sidebar if fewer objects than panels in multi-panel scenario ([#3042](https://github.com/parse-community/parse-dashboard/issues/3042)) ([dd3ba8d](https://github.com/parse-community/parse-dashboard/commit/dd3ba8d558cbe6659ab9dedb25672a560a3214a8))
+
+# [8.2.0-alpha.1](https://github.com/parse-community/parse-dashboard/compare/8.1.1-alpha.1...8.2.0-alpha.1) (2025-12-03)
+
+
+### Features
+
+* Add Node 24 support ([#3041](https://github.com/parse-community/parse-dashboard/issues/3041)) ([8cf2735](https://github.com/parse-community/parse-dashboard/commit/8cf2735d048e8cdce52c08813a1c91518447cf0d))
+
+## [8.1.1-alpha.1](https://github.com/parse-community/parse-dashboard/compare/8.1.0...8.1.1-alpha.1) (2025-12-03)
+
+
+### Bug Fixes
+
+* Info panel not refreshing on script execution ([#3040](https://github.com/parse-community/parse-dashboard/issues/3040)) ([f57e7e2](https://github.com/parse-community/parse-dashboard/commit/f57e7e2509827757bd51bf452bcd00e88066deb8))
+
 # [8.1.0-alpha.13](https://github.com/parse-community/parse-dashboard/compare/8.1.0-alpha.12...8.1.0-alpha.13) (2025-12-01)
 
 

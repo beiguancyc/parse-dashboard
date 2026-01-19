@@ -15,9 +15,11 @@ import Option from 'components/Dropdown/Option.react';
 import Toolbar from 'components/Toolbar/Toolbar.react';
 import CodeSnippet from 'components/CodeSnippet/CodeSnippet.react';
 import Notification from 'dashboard/Data/Browser/Notification.react';
+import Modal from 'components/Modal/Modal.react';
 import * as ColumnPreferences from 'lib/ColumnPreferences';
 import * as ClassPreferences from 'lib/ClassPreferences';
 import ViewPreferencesManager from 'lib/ViewPreferencesManager';
+import FilterPreferencesManager from 'lib/FilterPreferencesManager';
 import ScriptManager from 'lib/ScriptManager';
 import bcrypt from 'bcryptjs';
 import * as OTPAuth from 'otpauth';
@@ -29,6 +31,7 @@ export default class DashboardSettings extends DashboardView {
     this.section = 'App Settings';
     this.subsection = 'Dashboard Configuration';
     this.viewPreferencesManager = null;
+    this.filterPreferencesManager = null;
     this.scriptManager = null;
 
     this.state = {
@@ -45,6 +48,8 @@ export default class DashboardSettings extends DashboardView {
       passwordHidden: true,
       migrationLoading: false,
       storagePreference: 'local', // Will be updated in componentDidMount
+      showConflictModal: false,
+      migrationConflicts: [],
       copyData: {
         data: '',
         show: false,
@@ -65,6 +70,7 @@ export default class DashboardSettings extends DashboardView {
   initializeManagers() {
     if (this.context) {
       this.viewPreferencesManager = new ViewPreferencesManager(this.context);
+      this.filterPreferencesManager = new FilterPreferencesManager(this.context);
       this.scriptManager = new ScriptManager(this.context);
       this.loadStoragePreference();
     }
@@ -85,11 +91,26 @@ export default class DashboardSettings extends DashboardView {
       // Show a notification about the change
       this.showNote(`Storage preference changed to ${preference === 'server' ? 'server' : 'browser'}`);
     }
+
+    // Filters use the same storage preference as views
+    if (this.filterPreferencesManager) {
+      this.filterPreferencesManager.setStoragePreference(this.context.applicationId, preference);
+    }
   }
 
-  async migrateToServer() {
+  async migrateToServer(overwriteConflicts = false) {
     if (!this.viewPreferencesManager) {
       this.showNote('ViewPreferencesManager not initialized');
+      return;
+    }
+
+    if (!this.filterPreferencesManager) {
+      this.showNote('FilterPreferencesManager not initialized');
+      return;
+    }
+
+    if (!this.scriptManager) {
+      this.showNote('ScriptManager not initialized');
       return;
     }
 
@@ -101,19 +122,71 @@ export default class DashboardSettings extends DashboardView {
     this.setState({ migrationLoading: true });
 
     try {
-      const result = await this.viewPreferencesManager.migrateToServer(this.context.applicationId);
-      if (result.success) {
-        if (result.viewCount > 0) {
-          this.showNote(`Successfully migrated ${result.viewCount} view(s) to server storage.`);
+      // Migrate views
+      const viewsResult = await this.viewPreferencesManager.migrateToServer(this.context.applicationId, overwriteConflicts);
+
+      // Migrate filters
+      const filtersResult = await this.filterPreferencesManager.migrateToServer(this.context.applicationId, overwriteConflicts);
+
+      // Migrate scripts
+      const scriptsResult = await this.scriptManager.migrateToServer(this.context.applicationId, overwriteConflicts);
+
+      // Check for conflicts
+      const allConflicts = [
+        ...(viewsResult.conflicts || []),
+        ...(filtersResult.conflicts || []),
+        ...(scriptsResult.conflicts || [])
+      ];
+
+      if (allConflicts.length > 0 && !overwriteConflicts) {
+        // Show conflict dialog
+        this.showConflictDialog(allConflicts);
+        return;
+      }
+
+      const totalItems = viewsResult.viewCount + filtersResult.filterCount + scriptsResult.scriptCount;
+
+      if (viewsResult.success && filtersResult.success && scriptsResult.success) {
+        if (totalItems > 0) {
+          const messages = [];
+          if (viewsResult.viewCount > 0) {
+            messages.push(`${viewsResult.viewCount} view(s)`);
+          }
+          if (filtersResult.filterCount > 0) {
+            messages.push(`${filtersResult.filterCount} filter(s)`);
+          }
+          if (scriptsResult.scriptCount > 0) {
+            messages.push(`${scriptsResult.scriptCount} script(s)`);
+          }
+          this.showNote(`Successfully migrated ${messages.join(', ')} to server storage.`);
         } else {
-          this.showNote('No views found to migrate.');
+          this.showNote('No views, filters, or scripts found to migrate.');
         }
       }
     } catch (error) {
-      this.showNote(`Failed to migrate views: ${error.message}`);
+      this.showNote(`Failed to migrate settings: ${error.message}`);
     } finally {
       this.setState({ migrationLoading: false });
     }
+  }
+
+  showConflictDialog(conflicts) {
+    this.setState({
+      migrationLoading: false,
+      showConflictModal: true,
+      migrationConflicts: conflicts
+    });
+  }
+
+  handleConflictOverwrite() {
+    this.setState({ showConflictModal: false });
+    // User chose to overwrite - retry migration with overwrite flag
+    this.migrateToServer(true);
+  }
+
+  handleConflictCancel() {
+    this.setState({ showConflictModal: false, migrationConflicts: [] });
+    this.showNote('Migration aborted. Server settings were not modified.');
   }
 
   async deleteFromBrowser() {
@@ -126,15 +199,21 @@ export default class DashboardSettings extends DashboardView {
       return;
     }
 
+    if (!this.filterPreferencesManager) {
+      this.showNote('FilterPreferencesManager not initialized');
+      return;
+    }
+
     if (!this.scriptManager) {
       this.showNote('ScriptManager not initialized');
       return;
     }
 
     const viewsSuccess = this.viewPreferencesManager.deleteFromBrowser(this.context.applicationId);
+    const filtersSuccess = this.filterPreferencesManager.deleteFromBrowser(this.context.applicationId);
     const scriptsSuccess = this.scriptManager.deleteFromBrowser(this.context.applicationId);
 
-    if (viewsSuccess && scriptsSuccess) {
+    if (viewsSuccess && filtersSuccess && scriptsSuccess) {
       this.showNote('Successfully deleted dashboard settings from browser storage.');
     } else {
       this.showNote('Failed to delete all dashboard settings from browser storage.');
@@ -474,7 +553,7 @@ export default class DashboardSettings extends DashboardView {
         {this.viewPreferencesManager && this.scriptManager && this.viewPreferencesManager.isServerConfigEnabled() && (
           <Fieldset legend="Settings Storage">
             <div style={{ marginBottom: '20px', color: '#666', fontSize: '14px', textAlign: 'center' }}>
-              Storing dashboard settings on the server rather than locally in the browser storage makes the settings available across devices and browsers. It also prevents them from getting lost when resetting the browser website data. Settings that can be stored on the server are currently Views and JS Console scripts.
+              Storing dashboard settings on the server rather than locally in the browser storage makes the settings available across devices and browsers. It also prevents them from getting lost when resetting the browser website data. Settings that can be stored on the server are currently Data Browser Filters, Data Browser Graphs, Views, Keyboard Shortcuts and JS Console scripts.
             </div>
             <Field
               label={
@@ -500,7 +579,7 @@ export default class DashboardSettings extends DashboardView {
               label={
                 <Label
                   text="Migrate Settings to Server"
-                  description="Migrates browser-stored settings to the server. ⚠️ This overwrites existing dashboard settings on the server."
+                  description="Migrates browser-stored settings to the server. If conflicts are detected, you'll be asked whether to overwrite or abort."
                 />
               }
               input={
@@ -532,9 +611,116 @@ export default class DashboardSettings extends DashboardView {
         {this.state.copyData.show && copyData}
         {this.state.createUserInput && createUserInput}
         {this.state.newUser.show && userData}
+        {this.state.showConflictModal && this.renderConflictModal()}
         <Toolbar section="Settings" subsection="Dashboard Configuration" />
         <Notification note={this.state.message} isErrorNote={false} />
       </div>
+    );
+  }
+
+  renderConflictModal() {
+    const { migrationConflicts } = this.state;
+
+    // Format conflict details
+    const viewConflicts = migrationConflicts.filter(c => c.type === 'view');
+    const filterConflicts = migrationConflicts.filter(c => c.type === 'filter');
+    const scriptConflicts = migrationConflicts.filter(c => c.type === 'script');
+
+    const conflictList = (
+      <div style={{ padding: '20px', fontSize: '14px' }}>
+        <p style={{ marginBottom: '15px' }}>
+          The following settings already exist on the server:
+        </p>
+
+        <div style={{
+          maxHeight: '300px',
+          overflowY: 'auto',
+          marginBottom: '15px',
+          border: '1px solid #e0e0e0',
+          borderRadius: '4px',
+          padding: '10px'
+        }}>
+          {viewConflicts.length > 0 && (
+            <div style={{ marginBottom: (filterConflicts.length > 0 || scriptConflicts.length > 0) ? '15px' : '0' }}>
+              <strong>Views ({viewConflicts.length}):</strong>
+              <ul style={{ marginTop: '5px', marginBottom: '0', paddingLeft: '20px' }}>
+                {viewConflicts.map(conflict => {
+                  const viewName = conflict.local?.name || conflict.server?.name || '';
+                  return (
+                    <li key={conflict.id}>
+                      {viewName || 'Unnamed view'}
+                      <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#666', marginLeft: '8px' }}>
+                        [{conflict.id}]
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {filterConflicts.length > 0 && (
+            <div style={{ marginBottom: scriptConflicts.length > 0 ? '15px' : '0' }}>
+              <strong>Filters ({filterConflicts.length}):</strong>
+              <ul style={{ marginTop: '5px', marginBottom: '0', paddingLeft: '20px' }}>
+                {filterConflicts.map(conflict => {
+                  const filterName = conflict.local?.name || conflict.server?.name || '';
+                  const className = conflict.className || 'Unknown class';
+                  const displayText = filterName
+                    ? `${filterName} (${className})`
+                    : className;
+                  return (
+                    <li key={conflict.id}>
+                      {displayText}
+                      <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#666', marginLeft: '8px' }}>
+                        [{conflict.id}]
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {scriptConflicts.length > 0 && (
+            <div>
+              <strong>Scripts ({scriptConflicts.length}):</strong>
+              <ul style={{ marginTop: '5px', marginBottom: '0', paddingLeft: '20px' }}>
+                {scriptConflicts.map(conflict => {
+                  const scriptName = conflict.local?.name || conflict.server?.name || '';
+                  return (
+                    <li key={conflict.id}>
+                      {scriptName || 'Unnamed script'}
+                      <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#666', marginLeft: '8px' }}>
+                        [{conflict.id}]
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <p style={{ marginTop: '15px', fontWeight: 'bold' }}>
+          Do you want to overwrite the server settings with your local settings?
+        </p>
+      </div>
+    );
+
+    return (
+      <Modal
+        type={Modal.Types.DANGER}
+        icon="warn-outline"
+        title="Migration Conflicts Detected"
+        subtitle="Settings with the same ID already exist on the server"
+        confirmText="Overwrite Server Settings"
+        cancelText="Cancel Migration"
+        onConfirm={() => this.handleConflictOverwrite()}
+        onCancel={() => this.handleConflictCancel()}
+      >
+        {conflictList}
+      </Modal>
     );
   }
 

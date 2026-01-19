@@ -10,12 +10,19 @@ import copy from 'copy-to-clipboard';
 import BrowserTable from 'dashboard/Data/Browser/BrowserTable.react';
 import BrowserToolbar from 'dashboard/Data/Browser/BrowserToolbar.react';
 import * as ColumnPreferences from 'lib/ColumnPreferences';
+import { CurrentApp } from 'context/currentApp';
 import { dateStringUTC } from 'lib/DateUtils';
+import GraphDialog from 'dashboard/Data/Browser/GraphDialog.react';
+import GraphPanel from 'components/GraphPanel/GraphPanel.react';
+import GraphPreferencesManager from 'lib/GraphPreferencesManager';
 import getFileName from 'lib/getFileName';
+import { getValidScripts, executeScript } from '../../../lib/ScriptUtils';
 import Parse from 'parse';
 import React from 'react';
 import { ResizableBox } from 'react-resizable';
+import ScriptConfirmationModal from '../../../components/ScriptConfirmationModal/ScriptConfirmationModal.react';
 import styles from './Databrowser.scss';
+import KeyboardShortcutsManager, { matchesShortcut } from 'lib/KeyboardShortcutsPreferences';
 
 import AggregationPanel from '../../../components/AggregationPanel/AggregationPanel';
 
@@ -28,6 +35,8 @@ const AGGREGATION_PANEL_BATCH_NAVIGATE = 'aggregationPanelBatchNavigate';
 const AGGREGATION_PANEL_SHOW_CHECKBOX = 'aggregationPanelShowCheckbox';
 const AGGREGATION_PANEL_WIDTH = 'aggregationPanelWidth';
 const AGGREGATION_PANEL_COUNT = 'aggregationPanelCount';
+const GRAPH_PANEL_VISIBLE = 'graphPanelVisible';
+const GRAPH_PANEL_WIDTH = 'graphPanelWidth';
 
 function formatValueForCopy(value, type) {
   if (value === undefined) {
@@ -76,6 +85,8 @@ function formatValueForCopy(value, type) {
  * and the keyboard interactions for the data table.
  */
 export default class DataBrowser extends React.Component {
+  static contextType = CurrentApp;
+
   constructor(props) {
     super(props);
 
@@ -108,6 +119,15 @@ export default class DataBrowser extends React.Component {
       props.classwiseCloudFunctions?.[
         `${props.app.applicationId}${props.appName}`
       ]?.[props.className];
+    const storedGraphPanelVisible =
+      window.localStorage?.getItem(GRAPH_PANEL_VISIBLE) === 'true';
+    const storedGraphPanelWidth = window.localStorage?.getItem(GRAPH_PANEL_WIDTH);
+    const parsedWidth = storedGraphPanelWidth ? parseInt(storedGraphPanelWidth, 10) : 400;
+    const parsedGraphPanelWidth = !isNaN(parsedWidth) && parsedWidth > 0 ? parsedWidth : 400;
+
+    // Note: We don't load graphConfig from localStorage here anymore.
+    // Graphs are now loaded from server/localStorage via GraphPreferencesManager in componentDidMount
+    // and componentDidUpdate. This ensures we use the new server-based storage system.
 
     this.state = {
       order: order,
@@ -124,7 +144,8 @@ export default class DataBrowser extends React.Component {
       selectedData: [],
       prevClassName: props.className,
       panelWidth: parsedPanelWidth,
-      isResizing: false,
+      isAggregationPanelResizing: false,
+      isGraphPanelResizing: false,
       maxWidth: window.innerWidth - 300,
       showAggregatedData: true,
       frozenColumnIndex: -1,
@@ -141,6 +162,20 @@ export default class DataBrowser extends React.Component {
       multiPanelData: {}, // Object mapping objectId to panel data
       _objectsToFetch: [], // Temporary field for async fetch handling
       loadingObjectIds: new Set(),
+      keyboardShortcuts: null, // Keyboard shortcuts from server
+      showScriptConfirmationDialog: false,
+      selectedScript: null,
+      contextMenuX: null,
+      contextMenuY: null,
+      contextMenuItems: null,
+      panelCheckboxDragging: false,
+      draggedPanelSelection: false,
+      isGraphPanelVisible: storedGraphPanelVisible,
+      graphPanelWidth: parsedGraphPanelWidth,
+      graphConfig: null, // Will be loaded from server in componentDidMount
+      availableGraphs: [],
+      showGraphDialog: false,
+      isCreatingNewGraph: false,
     };
 
     this.handleResizeDiv = this.handleResizeDiv.bind(this);
@@ -172,7 +207,21 @@ export default class DataBrowser extends React.Component {
     this.addPanel = this.addPanel.bind(this);
     this.removePanel = this.removePanel.bind(this);
     this.handlePanelScroll = this.handlePanelScroll.bind(this);
+    this.handlePanelHeaderContextMenu = this.handlePanelHeaderContextMenu.bind(this);
     this.handleWrapperWheel = this.handleWrapperWheel.bind(this);
+    this.onMouseDownPanelCheckBox = this.onMouseDownPanelCheckBox.bind(this);
+    this.onMouseUpPanelCheckBox = this.onMouseUpPanelCheckBox.bind(this);
+    this.onMouseEnterPanelCheckBox = this.onMouseEnterPanelCheckBox.bind(this);
+    this.toggleGraphPanelVisibility = this.toggleGraphPanelVisibility.bind(this);
+    this.handleGraphResizeStart = this.handleGraphResizeStart.bind(this);
+    this.handleGraphResizeStop = this.handleGraphResizeStop.bind(this);
+    this.handleGraphResizeDiv = this.handleGraphResizeDiv.bind(this);
+    this.showGraphDialog = this.showGraphDialog.bind(this);
+    this.showNewGraphDialog = this.showNewGraphDialog.bind(this);
+    this.hideGraphDialog = this.hideGraphDialog.bind(this);
+    this.saveGraphConfig = this.saveGraphConfig.bind(this);
+    this.deleteGraphConfig = this.deleteGraphConfig.bind(this);
+    this.selectGraph = this.selectGraph.bind(this);
     this.saveOrderTimeout = null;
     this.aggregationPanelRef = React.createRef();
     this.panelColumnRefs = [];
@@ -180,6 +229,7 @@ export default class DataBrowser extends React.Component {
     this.isWheelScrolling = false;
     this.multiPanelWrapperElement = null;
     this.setMultiPanelWrapperRef = this.setMultiPanelWrapperRef.bind(this);
+    this.graphPreferencesManager = new GraphPreferencesManager(props.app);
   }
 
   setMultiPanelWrapperRef(element) {
@@ -249,43 +299,84 @@ export default class DataBrowser extends React.Component {
     this.checkClassNameChange(this.state.prevClassName, props.className);
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     document.body.addEventListener('keydown', this.handleKey);
     window.addEventListener('resize', this.updateMaxWidth);
+    window.addEventListener('mouseup', this.onMouseUpPanelCheckBox);
+
+    // Load keyboard shortcuts from server
+    try {
+      const manager = new KeyboardShortcutsManager(this.props.app);
+      const shortcuts = await manager.getKeyboardShortcuts(this.props.app.applicationId);
+      this.setState({ keyboardShortcuts: shortcuts });
+    } catch (error) {
+      console.warn('Failed to load keyboard shortcuts:', error);
+    }
+
+    // Load graphs on initial mount
+    try {
+      const graphs = await this.graphPreferencesManager.getGraphs(
+        this.props.app.applicationId,
+        this.props.className
+      );
+      // Set the first graph as the current graph if any exist
+      const graphConfig = graphs && graphs.length > 0 ? graphs[0] : null;
+      this.setState({
+        availableGraphs: graphs || [],
+        graphConfig: graphConfig
+      });
+    } catch (error) {
+      console.error('Failed to load graphs on mount:', error);
+      this.setState({ availableGraphs: [], graphConfig: null });
+    }
   }
 
   componentWillUnmount() {
     document.body.removeEventListener('keydown', this.handleKey);
     window.removeEventListener('resize', this.updateMaxWidth);
+    window.removeEventListener('mouseup', this.onMouseUpPanelCheckBox);
     if (this.multiPanelWrapperElement) {
       this.multiPanelWrapperElement.removeEventListener('wheel', this.handleWrapperWheel);
     }
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    // Clear panels immediately when className changes
-    if (
-      this.props.className !== prevProps.className &&
-      this.state.isPanelVisible
-    ) {
-      // Clear panel data and selection to show "No object selected"
-      this.props.setAggregationPanelData({});
-      this.props.setLoadingInfoPanel(false);
-      this.setState({
-        selectedObjectId: undefined,
-        showAggregatedData: true, // Keep true to show "No object selected" message
-        multiPanelData: {},
-        displayedObjectIds: []
-      });
+  async componentDidUpdate(prevProps, prevState) {
+    // Reload graphConfig when className changes
+    if (this.props.className !== prevProps.className) {
+      // Try to load from server first, fallback to localStorage
+      try {
+        const graphs = await this.graphPreferencesManager.getGraphs(
+          this.props.app.applicationId,
+          this.props.className
+        );
+        // Use the first graph if any exists, or null
+        const graphConfig = graphs && graphs.length > 0 ? graphs[0] : null;
+        this.setState({
+          graphConfig,
+          availableGraphs: graphs || []
+        });
+      } catch (error) {
+        console.error('Failed to load graphs on className change:', error);
+        // GraphPreferencesManager handles its own localStorage fallback
+        // Just clear the state on error
+        this.setState({
+          graphConfig: null,
+          availableGraphs: []
+        });
+      }
     }
 
-    // Clear panels when data becomes null (filter change, class change, etc.)
-    if (
-      this.props.data === null &&
-      prevProps.data !== null &&
-      this.state.isPanelVisible &&
-      this.state.selectedObjectId !== undefined
-    ) {
+    // Clear panels when className changes, data becomes null, or data reloads
+    const shouldClearPanels = this.state.isPanelVisible && (
+      // Class changed
+      this.props.className !== prevProps.className ||
+      // Data became null (filter change, loading state)
+      (this.props.data === null && prevProps.data !== null) ||
+      // Data reloaded (script execution, refresh)
+      (this.props.data !== null && prevProps.data !== null && this.props.data !== prevProps.data)
+    );
+
+    if (shouldClearPanels) {
       // Clear panel data and selection to show "No object selected"
       this.props.setAggregationPanelData({});
       this.props.setLoadingInfoPanel(false);
@@ -293,7 +384,8 @@ export default class DataBrowser extends React.Component {
         selectedObjectId: undefined,
         showAggregatedData: true, // Keep true to show "No object selected" message
         multiPanelData: {},
-        displayedObjectIds: []
+        displayedObjectIds: [],
+        prefetchCache: {}, // Clear cache to prevent memory leak
       });
     }
 
@@ -390,19 +482,35 @@ export default class DataBrowser extends React.Component {
   }
 
   handleResizeStart() {
-    this.setState({ isResizing: true });
+    this.setState({ isAggregationPanelResizing: true });
   }
 
   handleResizeStop(event, { size }) {
+    // Convert effective width back to full panel width when there are hidden panels
+    let newPanelWidth = size.width;
+    if (this.state.panelCount > 1 && this.state.displayedObjectIds.length < this.state.panelCount) {
+      const actualPanelCount = Math.max(this.state.displayedObjectIds.length, 1);
+      // Reverse the calculation: fullWidth = (effectiveWidth / actualPanelCount) * panelCount
+      newPanelWidth = (size.width / actualPanelCount) * this.state.panelCount;
+    }
+
     this.setState({
-      isResizing: false,
-      panelWidth: size.width,
+      isAggregationPanelResizing: false,
+      panelWidth: newPanelWidth,
     });
-    window.localStorage?.setItem(AGGREGATION_PANEL_WIDTH, size.width);
+    window.localStorage?.setItem(AGGREGATION_PANEL_WIDTH, newPanelWidth);
   }
 
   handleResizeDiv(event, { size }) {
-    this.setState({ panelWidth: size.width });
+    // Convert effective width back to full panel width when there are hidden panels
+    let newPanelWidth = size.width;
+    if (this.state.panelCount > 1 && this.state.displayedObjectIds.length < this.state.panelCount) {
+      const actualPanelCount = Math.max(this.state.displayedObjectIds.length, 1);
+      // Reverse the calculation: fullWidth = (effectiveWidth / actualPanelCount) * panelCount
+      newPanelWidth = (size.width / actualPanelCount) * this.state.panelCount;
+    }
+
+    this.setState({ panelWidth: newPanelWidth });
   }
 
   setShowAggregatedData(bool) {
@@ -735,7 +843,7 @@ export default class DataBrowser extends React.Component {
         // or with ctrl/meta (excel style - move to the first row)
         const prevObjectID = this.state.selectedObjectId;
         // Calculate step size based on batch navigation mode
-        const stepSize = this.state.panelCount > 1 && this.state.batchNavigate ? this.state.panelCount : 1;
+        const stepSize = this.state.panelCount > 1 && this.state.batchNavigate && this.state.isPanelVisible ? this.state.panelCount : 1;
         const newRow = e.ctrlKey || e.metaKey ? 0 : Math.max(this.state.current.row - stepSize, 0);
         this.setState({
           current: {
@@ -780,7 +888,7 @@ export default class DataBrowser extends React.Component {
         // or with ctrl/meta (excel style - move to the last row)
         const prevObjectID = this.state.selectedObjectId;
         // Calculate step size based on batch navigation mode
-        const stepSizeDown = this.state.panelCount > 1 && this.state.batchNavigate ? this.state.panelCount : 1;
+        const stepSizeDown = this.state.panelCount > 1 && this.state.batchNavigate && this.state.isPanelVisible ? this.state.panelCount : 1;
         const newRow =
           e.ctrlKey || e.metaKey
             ? this.props.data.length - 1
@@ -830,6 +938,34 @@ export default class DataBrowser extends React.Component {
         if (!this.state.editing && this.state.current) {
           this.setEditing(true);
           e.preventDefault();
+        }
+        break;
+      }
+      default: {
+        // Handle custom keyboard shortcuts from server
+        const shortcuts = this.state.keyboardShortcuts;
+        if (!shortcuts) {
+          break;
+        }
+
+        // Reload data shortcut (only if enabled)
+        if (matchesShortcut(e, shortcuts.dataBrowserReloadData)) {
+          this.handleRefresh();
+          e.preventDefault();
+          break;
+        }
+
+        // Toggle panels shortcut (only if enabled and class has info panels configured)
+        if (matchesShortcut(e, shortcuts.dataBrowserToggleInfoPanels)) {
+          const hasAggregation =
+            this.props.classwiseCloudFunctions?.[
+              `${this.props.app.applicationId}${this.props.appName}`
+            ]?.[this.props.className];
+          if (hasAggregation) {
+            this.togglePanelVisibility();
+            e.preventDefault();
+          }
+          break;
         }
         break;
       }
@@ -895,8 +1031,11 @@ export default class DataBrowser extends React.Component {
           const objectsToFetch = [];
 
           if (prevState.panelCount > 1 && selectedObjectId) {
-            // If the selected object is not in the displayed list, update displayed objects
-            if (!newDisplayedObjectIds.includes(selectedObjectId)) {
+            // When batch-navigate is enabled, always rebuild the batch starting from the selected row
+            // to ensure prefetched data is properly utilized
+            const shouldRebuildBatch = !newDisplayedObjectIds.includes(selectedObjectId) || prevState.batchNavigate;
+
+            if (shouldRebuildBatch) {
               const currentIndex = this.props.data?.findIndex(obj => obj.id === selectedObjectId);
               if (currentIndex !== -1) {
                 const { prefetchCache } = prevState;
@@ -957,6 +1096,96 @@ export default class DataBrowser extends React.Component {
     this.setState({ contextMenuX, contextMenuY, contextMenuItems });
   }
 
+  handlePanelHeaderContextMenu(event, objectId) {
+    const { scripts = [] } = this.context || {};
+    const className = this.props.className;
+    const field = 'objectId';
+
+    const { validScripts, validator } = getValidScripts(scripts, className, field);
+
+    const menuItems = [];
+
+    // Add "Get related records from..." menu item
+    const relatedRecordsMenuItem = this.getRelatedObjectsMenuItemForPanel(objectId, className);
+    if (relatedRecordsMenuItem) {
+      menuItems.push(relatedRecordsMenuItem);
+    }
+
+    // Add Scripts menu if there are valid scripts
+    if (validScripts.length && this.props.onEditSelectedRow) {
+      menuItems.push({
+        text: 'Scripts',
+        items: validScripts.map(script => {
+          return {
+            text: script.title,
+            disabled: validator?.(objectId, field) === false,
+            callback: () => {
+              const selectedScript = { ...script, className, objectId };
+              if (script.showConfirmationDialog) {
+                this.setState({
+                  showScriptConfirmationDialog: true,
+                  selectedScript
+                });
+              } else {
+                executeScript(
+                  script,
+                  className,
+                  objectId,
+                  this.props.showNote,
+                  this.props.onRefresh
+                );
+              }
+            },
+          };
+        }),
+      });
+    }
+
+    const { pageX, pageY } = event;
+    if (menuItems.length) {
+      this.setContextMenu(pageX, pageY, menuItems);
+    }
+  }
+
+  getRelatedObjectsMenuItemForPanel(objectId, pointerClassName) {
+    const { schema, onPointerCmdClick } = this.props;
+
+    if (!pointerClassName || !schema || !onPointerCmdClick) {
+      return undefined;
+    }
+
+    const relatedRecordsMenuItem = {
+      text: 'Get related records from...',
+      items: [],
+    };
+
+    schema.data
+      .get('classes')
+      .sortBy((v, k) => k)
+      .forEach((cl, className) => {
+        cl.forEach((column, field) => {
+          if (column.targetClass !== pointerClassName) {
+            return;
+          }
+          relatedRecordsMenuItem.items.push({
+            text: `${className}`,
+            subtext: `${field}`,
+            callback: () => {
+              const relatedObject = new Parse.Object(pointerClassName);
+              relatedObject.id = objectId;
+              onPointerCmdClick({
+                className,
+                id: relatedObject.toPointer(),
+                field,
+              });
+            },
+          });
+        });
+      });
+
+    return relatedRecordsMenuItem.items.length ? relatedRecordsMenuItem : undefined;
+  }
+
   freezeColumns(index) {
     this.setState({ frozenColumnIndex: index });
   }
@@ -1010,6 +1239,156 @@ export default class DataBrowser extends React.Component {
     });
   }
 
+  toggleGraphPanelVisibility() {
+    this.setState(prevState => {
+      const newVisibility = !prevState.isGraphPanelVisible;
+      window.localStorage?.setItem(GRAPH_PANEL_VISIBLE, newVisibility);
+      return { isGraphPanelVisible: newVisibility };
+    });
+  }
+
+  handleGraphResizeStart() {
+    this.setState({ isGraphPanelResizing: true });
+  }
+
+  handleGraphResizeStop(event, { size }) {
+    this.setState({
+      isGraphPanelResizing: false,
+      graphPanelWidth: size.width,
+    });
+    window.localStorage?.setItem(GRAPH_PANEL_WIDTH, size.width);
+  }
+
+  handleGraphResizeDiv(event, { size }) {
+    this.setState({ graphPanelWidth: size.width });
+  }
+
+  showGraphDialog(isNewGraph = false) {
+    this.setState({
+      showGraphDialog: true,
+      isCreatingNewGraph: isNewGraph
+    });
+  }
+
+  showNewGraphDialog() {
+    this.setState({
+      showGraphDialog: true,
+      isCreatingNewGraph: true
+    });
+  }
+
+  hideGraphDialog() {
+    this.setState({ showGraphDialog: false });
+  }
+
+  async saveGraphConfig(config) {
+    // Ensure config has an ID for server storage
+    const configWithId = {
+      ...config,
+      id: config.id || this.graphPreferencesManager.generateGraphId()
+    };
+
+    // Store previous state for potential rollback
+    const previousGraphConfig = this.state.graphConfig;
+    const previousAvailableGraphs = this.state.availableGraphs;
+
+    // Optimistically update availableGraphs to include the new/updated graph
+    const existingGraphIndex = this.state.availableGraphs.findIndex(g => g.id === configWithId.id);
+    let updatedAvailableGraphs;
+    if (existingGraphIndex >= 0) {
+      // Update existing graph
+      updatedAvailableGraphs = [...this.state.availableGraphs];
+      updatedAvailableGraphs[existingGraphIndex] = configWithId;
+    } else {
+      // Add new graph
+      updatedAvailableGraphs = [...this.state.availableGraphs, configWithId];
+    }
+
+    this.setState({
+      graphConfig: configWithId,
+      showGraphDialog: false,
+      availableGraphs: updatedAvailableGraphs,
+    });
+
+    // Try to save to server/localStorage
+    try {
+      await this.graphPreferencesManager.saveGraph(
+        this.props.app.applicationId,
+        this.props.className,
+        configWithId,
+        [] // allGraphs not needed for single save
+      );
+
+      // Reload all graphs to update the dropdown from server
+      const graphs = await this.graphPreferencesManager.getGraphs(
+        this.props.app.applicationId,
+        this.props.className
+      );
+      this.setState({ availableGraphs: graphs || [] });
+    } catch (error) {
+      console.error('Failed to save graph:', error);
+      // Revert optimistic update on error
+      this.setState({
+        graphConfig: previousGraphConfig,
+        availableGraphs: previousAvailableGraphs
+      });
+      // Show error notification to user
+      if (this.props.showNote) {
+        this.props.showNote('Failed to save graph. Please try again.', true);
+      }
+    }
+  }
+
+  selectGraph(graph) {
+    this.setState({ graphConfig: graph });
+  }
+
+  async deleteGraphConfig(graphId) {
+    // Store previous state for potential rollback
+    const previousGraphConfig = this.state.graphConfig;
+    const previousAvailableGraphs = this.state.availableGraphs;
+    const previousIsGraphPanelVisible = this.state.isGraphPanelVisible;
+
+    // Optimistically update UI
+    this.setState({
+      graphConfig: null,
+      showGraphDialog: false,
+      isGraphPanelVisible: false,
+    });
+
+    // Try to delete from server/localStorage
+    try {
+      await this.graphPreferencesManager.deleteGraph(
+        this.props.app.applicationId,
+        this.props.className,
+        graphId,
+        [] // allGraphs not needed for single delete
+      );
+
+      // Reload all graphs to update the dropdown
+      const graphs = await this.graphPreferencesManager.getGraphs(
+        this.props.app.applicationId,
+        this.props.className
+      );
+      this.setState({ availableGraphs: graphs || [] });
+
+      // Clear the graph panel visibility from localStorage
+      window.localStorage?.setItem(GRAPH_PANEL_VISIBLE, 'false');
+    } catch (error) {
+      console.error('Failed to delete graph:', error);
+      // Revert optimistic update on error
+      this.setState({
+        graphConfig: previousGraphConfig,
+        availableGraphs: previousAvailableGraphs,
+        isGraphPanelVisible: previousIsGraphPanelVisible
+      });
+      // Show error notification to user
+      if (this.props.showNote) {
+        this.props.showNote('Failed to delete graph. Please try again.', true);
+      }
+    }
+  }
+
   handlePanelScroll(event, index) {
     if (!this.state.syncPanelScroll || this.state.panelCount <= 1) {
       return;
@@ -1034,6 +1413,30 @@ export default class DataBrowser extends React.Component {
         ref.current.scrollTop = scrollTop;
       }
     });
+  }
+
+  onMouseDownPanelCheckBox(objectId, checked) {
+    const newSelectionState = !checked;
+    this.props.selectRow(objectId, newSelectionState);
+    this.setState({
+      panelCheckboxDragging: true,
+      draggedPanelSelection: newSelectionState,
+    });
+  }
+
+  onMouseUpPanelCheckBox() {
+    if (this.state.panelCheckboxDragging) {
+      this.setState({
+        panelCheckboxDragging: false,
+        draggedPanelSelection: false,
+      });
+    }
+  }
+
+  onMouseEnterPanelCheckBox(objectId) {
+    if (this.state.panelCheckboxDragging) {
+      this.props.selectRow(objectId, this.state.draggedPanelSelection);
+    }
   }
 
   handleWrapperWheel(event) {
@@ -1236,8 +1639,10 @@ export default class DataBrowser extends React.Component {
     }
 
     const cache = { ...this.state.prefetchCache };
+    const now = Date.now();
+
+    // Clean up stale entries and track which keys are removed
     if (prefetchStale) {
-      const now = Date.now();
       Object.keys(cache).forEach(key => {
         if ((now - cache[key].timestamp) / 1000 >= prefetchStale) {
           delete cache[key];
@@ -1247,6 +1652,18 @@ export default class DataBrowser extends React.Component {
     if (Object.keys(cache).length !== Object.keys(this.state.prefetchCache).length) {
       this.setState({ prefetchCache: cache });
     }
+
+    // Helper function to check if an object needs prefetching (missing or stale)
+    const needsPrefetch = (objectId) => {
+      if (!Object.prototype.hasOwnProperty.call(cache, objectId)) {
+        return true;
+      }
+      if (prefetchStale) {
+        const entry = cache[objectId];
+        return entry && (now - entry.timestamp) / 1000 >= prefetchStale;
+      }
+      return false;
+    };
 
     const history = this.state.selectionHistory;
     if (history.length < 3) {
@@ -1270,7 +1687,7 @@ export default class DataBrowser extends React.Component {
       ) {
         // For each step ahead, prefetch the main object
         const mainObjId = this.props.data[c + (i * stepSize)].id;
-        if (!Object.prototype.hasOwnProperty.call(cache, mainObjId)) {
+        if (needsPrefetch(mainObjId)) {
           this.prefetchObject(mainObjId);
         }
 
@@ -1279,7 +1696,7 @@ export default class DataBrowser extends React.Component {
           const batchStartIndex = c + (i * stepSize);
           for (let j = 1; j < panelCount && batchStartIndex + j < this.props.data.length; j++) {
             const batchObjId = this.props.data[batchStartIndex + j].id;
-            if (!Object.prototype.hasOwnProperty.call(cache, batchObjId)) {
+            if (needsPrefetch(batchObjId)) {
               this.prefetchObject(batchObjId);
             }
           }
@@ -1493,9 +1910,12 @@ export default class DataBrowser extends React.Component {
           },
           selectedObjectId: undefined,
           selectedData,
+        }, () => {
+          this.props.onCellSelectionChange?.(newSelection.size, selectedData);
         });
       } else {
         this.setCurrent({ row, col });
+        this.props.onCellSelectionChange?.(0, []);
       }
     } else {
       this.setState({
@@ -1503,6 +1923,8 @@ export default class DataBrowser extends React.Component {
         selectedData: [],
         current: { row, col },
         firstSelectedCell: clickedCellKey,
+      }, () => {
+        this.props.onCellSelectionChange?.(0, []);
       });
     }
   }
@@ -1518,6 +1940,23 @@ export default class DataBrowser extends React.Component {
       ...other
     } = this.props;
     const { preventSchemaEdits, applicationId } = app;
+
+    // Calculate effective panel width based on actual displayed panels
+    // When panelCount > 1 but fewer panels are actually displayed, reduce width proportionally
+    let effectivePanelWidth = this.state.panelWidth;
+    if (this.state.panelCount > 1 && this.state.displayedObjectIds.length < this.state.panelCount) {
+      // Width per panel = total width / configured panel count
+      // Effective width = width per panel * actual number of displayed panels (or 1 if none)
+      const actualPanelCount = Math.max(this.state.displayedObjectIds.length, 1);
+      effectivePanelWidth = (this.state.panelWidth / this.state.panelCount) * actualPanelCount;
+    }
+
+    // Calculate max width for aggregation panel, accounting for graph panel's minimum width when visible
+    const graphPanelMinWidth = 300;
+    const aggregationMaxWidth = this.state.isGraphPanelVisible && this.state.graphConfig
+      ? this.state.maxWidth - graphPanelMinWidth
+      : this.state.maxWidth;
+
     return (
       <div>
         <div>
@@ -1546,22 +1985,24 @@ export default class DataBrowser extends React.Component {
             selectedCells={this.state.selectedCells}
             handleCellClick={this.handleCellClick}
             isPanelVisible={this.state.isPanelVisible}
-            panelWidth={this.state.panelWidth}
-            isResizing={this.state.isResizing}
+            panelWidth={effectivePanelWidth}
+            isResizing={this.state.isAggregationPanelResizing || this.state.isGraphPanelResizing}
             setShowAggregatedData={this.setShowAggregatedData}
             showRowNumber={this.state.showRowNumber}
             setShowRowNumber={this.setShowRowNumber}
             skip={this.props.skip}
             limit={this.props.limit}
             firstSelectedCell={this.state.firstSelectedCell}
+            isGraphPanelVisible={this.state.isGraphPanelVisible && !!this.state.graphConfig}
+            graphPanelWidth={this.state.graphPanelWidth}
             {...other}
           />
           {this.state.isPanelVisible && (
             <ResizableBox
-              width={this.state.panelWidth}
+              width={effectivePanelWidth}
               height={Infinity}
               minConstraints={[100, Infinity]}
-              maxConstraints={[this.state.maxWidth, Infinity]}
+              maxConstraints={[aggregationMaxWidth, Infinity]}
               onResizeStart={this.handleResizeStart} // Handle start of resizing
               onResizeStop={this.handleResizeStop} // Handle end of resizing
               onResize={this.handleResizeDiv}
@@ -1578,18 +2019,24 @@ export default class DataBrowser extends React.Component {
                     ref={this.setMultiPanelWrapperRef}
                   >
                     {(() => {
-                      // If no objects are displayed, show a single panel with "No object selected"
+                      // If no objects are displayed, show a single panel
                       if (this.state.displayedObjectIds.length === 0) {
+                        // If there's a selected object, show its data
+                        const panelData = this.state.selectedObjectId
+                          ? (this.state.multiPanelData[this.state.selectedObjectId] || this.props.AggregationPanelData)
+                          : {};
+                        const isLoading = this.state.selectedObjectId && this.props.isLoadingCloudFunction;
+
                         return (
                           <AggregationPanel
-                            data={{}}
-                            isLoadingCloudFunction={false}
+                            data={panelData}
+                            isLoadingCloudFunction={isLoading}
                             showAggregatedData={true}
-                            errorAggregatedData={{}}
+                            errorAggregatedData={this.state.selectedObjectId ? this.props.errorAggregatedData : {}}
                             showNote={this.props.showNote}
                             setErrorAggregatedData={this.props.setErrorAggregatedData}
                             setSelectedObjectId={this.setSelectedObjectId}
-                            selectedObjectId={undefined}
+                            selectedObjectId={this.state.selectedObjectId}
                             appName={this.props.appName}
                             className={this.props.className}
                           />
@@ -1617,11 +2064,19 @@ export default class DataBrowser extends React.Component {
                               {this.state.showPanelCheckbox && (
                                 <div
                                   className={styles.panelHeader}
-                                  onClick={() => {
-                                    this.props.selectRow(objectId, !isRowSelected);
-                                  }}
                                   onMouseDown={(e) => {
+                                    // Ignore right-click (button 2) and middle-click (button 1)
+                                    if (e.button !== 0) {
+                                      return;
+                                    }
                                     e.preventDefault();
+                                    this.onMouseDownPanelCheckBox(objectId, isRowSelected);
+                                  }}
+                                  onMouseUp={this.onMouseUpPanelCheckBox}
+                                  onMouseEnter={() => this.onMouseEnterPanelCheckBox(objectId)}
+                                  onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    this.handlePanelHeaderContextMenu(e, objectId);
                                   }}
                                 >
                                   <input
@@ -1669,6 +2124,41 @@ export default class DataBrowser extends React.Component {
               </div>
             </ResizableBox>
           )}
+          {this.state.isGraphPanelVisible && (() => {
+            // Calculate max width for graph panel, accounting for aggregation panel when visible
+            const aggregationPanelWidth = this.state.isPanelVisible ? effectivePanelWidth : 0;
+            const graphMaxWidth = Math.max(300, this.state.maxWidth - aggregationPanelWidth);
+            // Clamp the graph panel width to the available space
+            const graphPanelWidth = Math.min(this.state.graphPanelWidth, graphMaxWidth);
+
+            return (
+              <ResizableBox
+                width={graphPanelWidth}
+                height={Infinity}
+                minConstraints={[300, Infinity]}
+                maxConstraints={[graphMaxWidth, Infinity]}
+                onResizeStart={this.handleGraphResizeStart}
+                onResizeStop={this.handleGraphResizeStop}
+                onResize={this.handleGraphResizeDiv}
+                resizeHandles={['w']}
+                className={styles.resizablePanel}
+                style={{ right: aggregationPanelWidth }}
+              >
+                <GraphPanel
+                  graphConfig={this.state.graphConfig}
+                  data={this.props.data}
+                  columns={this.props.columns}
+                  isLoading={!this.props.data}
+                  onRefresh={this.handleRefresh}
+                  onEdit={this.showGraphDialog}
+                  onClose={this.toggleGraphPanelVisibility}
+                  availableGraphs={this.state.availableGraphs}
+                  onGraphSelect={this.selectGraph}
+                  onNewGraph={this.showNewGraphDialog}
+                />
+              </ResizableBox>
+            );
+          })()}
         </div>
 
         <BrowserToolbar
@@ -1693,7 +2183,6 @@ export default class DataBrowser extends React.Component {
           editCloneRows={editCloneRows}
           onCancelPendingEditRows={onCancelPendingEditRows}
           order={this.state.order}
-          selectedData={this.state.selectedData}
           allClasses={Object.keys(this.props.schema.data.get('classes').toObject())}
           allClassesSchema={this.state.allClassesSchema}
           togglePanel={this.togglePanelVisibility}
@@ -1713,6 +2202,8 @@ export default class DataBrowser extends React.Component {
           toggleBatchNavigate={this.toggleBatchNavigate}
           showPanelCheckbox={this.state.showPanelCheckbox}
           toggleShowPanelCheckbox={this.toggleShowPanelCheckbox}
+          toggleGraphPanel={this.toggleGraphPanelVisibility}
+          isGraphPanelVisible={this.state.isGraphPanelVisible}
           {...other}
           onRefresh={this.handleRefresh}
         />
@@ -1722,6 +2213,32 @@ export default class DataBrowser extends React.Component {
             x={this.state.contextMenuX}
             y={this.state.contextMenuY}
             items={this.state.contextMenuItems}
+          />
+        )}
+        {this.state.showScriptConfirmationDialog && (
+          <ScriptConfirmationModal
+            script={this.state.selectedScript}
+            onCancel={() => this.setState({ showScriptConfirmationDialog: false, selectedScript: null })}
+            onConfirm={() => {
+              executeScript(
+                this.state.selectedScript,
+                this.state.selectedScript.className,
+                this.state.selectedScript.objectId,
+                this.props.showNote,
+                this.props.onRefresh
+              );
+              this.setState({ showScriptConfirmationDialog: false, selectedScript: null });
+            }}
+          />
+        )}
+        {this.state.showGraphDialog && (
+          <GraphDialog
+            columns={this.props.columns}
+            className={this.props.className}
+            initialConfig={this.state.isCreatingNewGraph ? null : this.state.graphConfig}
+            onConfirm={this.saveGraphConfig}
+            onCancel={this.hideGraphDialog}
+            onDelete={this.deleteGraphConfig}
           />
         )}
       </div>

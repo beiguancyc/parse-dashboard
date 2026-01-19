@@ -27,6 +27,7 @@ const BrowserToolbar = ({
   perms,
   schema,
   filters,
+  savedFilters,
   selection,
   relation,
   setCurrent,
@@ -74,7 +75,6 @@ const BrowserToolbar = ({
   logout,
   toggleMasterKeyUsage,
 
-  selectedData,
   allClasses,
   allClassesSchema,
 
@@ -96,6 +96,8 @@ const BrowserToolbar = ({
   toggleBatchNavigate,
   showPanelCheckbox,
   toggleShowPanelCheckbox,
+  toggleGraphPanel,
+  isGraphPanelVisible,
 }) => {
   const selectionLength = Object.keys(selection).length;
   const isPendingEditCloneRows = editCloneRows && editCloneRows.length > 0;
@@ -288,7 +290,6 @@ const BrowserToolbar = ({
       section={relation ? `Relation <${relation.targetClassName}>` : 'Class'}
       subsection={subsection}
       details={details.join(' \u2022 ')}
-      selectedData={selectedData}
       togglePanel={togglePanel}
       isPanelVisible={isPanelVisible}
       addPanel={addPanel}
@@ -481,6 +482,27 @@ const BrowserToolbar = ({
         </BrowserMenu>
       </BrowserMenu>
       <div className={styles.toolbarSeparator} />
+      <BrowserMenu setCurrent={setCurrent} title="Graph" icon="analytics-solid">
+        <MenuItem
+          text={
+            <span>
+              {isGraphPanelVisible && (
+                <Icon
+                  name="check"
+                  width={12}
+                  height={12}
+                  fill="#ffffffff"
+                  className="menuCheck"
+                />
+              )}
+              Show Graph Panel
+            </span>
+          }
+          onClick={toggleGraphPanel}
+          disableMouseDown={true}
+        />
+      </BrowserMenu>
+      <div className={styles.toolbarSeparator} />
       <a className={classes.join(' ')} onClick={isPendingEditCloneRows ? null : onRefresh}>
         <Icon name="refresh-solid" width={14} height={14} />
         <span>Refresh</span>
@@ -490,6 +512,7 @@ const BrowserToolbar = ({
         setCurrent={setCurrent}
         schema={schemaSimplifiedData}
         filters={filters}
+        savedFilters={savedFilters}
         onChange={onFilterChange}
         onSaveFilter={onFilterSave}
         onDeleteFilter={onDeleteFilter}

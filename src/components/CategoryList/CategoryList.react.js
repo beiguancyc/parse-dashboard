@@ -36,7 +36,8 @@ export default class CategoryList extends React.Component {
 
   componentDidUpdate(prevProps) {
     // Auto-expand if the URL params changed (e.g., user navigated to a different filter)
-    if (prevProps.params !== this.props.params) {
+    // OR if categories changed (e.g., filters finished loading asynchronously)
+    if (prevProps.params !== this.props.params || prevProps.categories !== this.props.categories) {
       this._autoExpandForSelectedFilter();
     }
     this._updateHighlight();
@@ -87,7 +88,7 @@ export default class CategoryList extends React.Component {
 
           // If a matching filter is found, auto-expand this class
           if (matchIndex !== -1 && !this.state.openClasses.includes(id)) {
-            this.setState({ openClasses: [id] });
+            this.setState(prevState => ({ openClasses: [...prevState.openClasses, id] }));
           }
           break;
         }
@@ -174,7 +175,19 @@ export default class CategoryList extends React.Component {
                   title={c.name}
                   to={{ pathname: link }}
                   className={className}
-                  onClick={() => this.props.classClicked()}
+                  onClick={() => {
+                    if (typeof this.props.classClicked === 'function') {
+                      this.props.classClicked();
+                    }
+                    // Auto-expand filter list when clicking on a class that has filters
+                    if ((c.filters || []).length > 0) {
+                      this.setState(prevState => ({
+                        openClasses: prevState.openClasses.includes(id)
+                          ? prevState.openClasses
+                          : [...prevState.openClasses, id]
+                      }));
+                    }
+                  }}
                 >
                   {c.name}
                 </Link>
@@ -248,5 +261,6 @@ CategoryList.propTypes = {
   ),
   current: PropTypes.string.describe('Id of current category to be highlighted.'),
   linkPrefix: PropTypes.string.describe('Link prefix used to generate link path.'),
+  classClicked: PropTypes.func.describe('Callback function invoked when a class is clicked.'),
   onEditFilter: PropTypes.func.describe('Callback function for editing a filter.'),
 };
