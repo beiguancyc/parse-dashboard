@@ -13,24 +13,31 @@ import React from 'react';
 import styles from 'components/DateTimePicker/DateTimePicker.scss';
 
 export default class DateTimePicker extends React.Component {
+  // 默认使用本地时间
+  static isLocal(props) {
+    return props.local !== false;
+  }
+
   constructor(props) {
     super();
+    const useLocal = DateTimePicker.isLocal(props);
     const timeRef = props.value || hoursFrom(new Date(), 1);
     this.state = {
-      hours: String(timeRef[getDateMethod(props.local, 'getHours')]()),
+      hours: String(timeRef[getDateMethod(useLocal, 'getHours')]()),
       minutes:
-        (timeRef[getDateMethod(props.local, 'getMinutes')]() < 10 ? '0' : '') +
-        String(timeRef[getDateMethod(props.local, 'getMinutes')]()),
+        (timeRef[getDateMethod(useLocal, 'getMinutes')]() < 10 ? '0' : '') +
+        String(timeRef[getDateMethod(useLocal, 'getMinutes')]()),
     };
   }
 
   componentWillReceiveProps(props) {
+    const useLocal = DateTimePicker.isLocal(props);
     const timeRef = props.value || hoursFrom(new Date(), 1);
     this.setState({
-      hours: String(timeRef[getDateMethod(props.local, 'getHours')]()),
+      hours: String(timeRef[getDateMethod(useLocal, 'getHours')]()),
       minutes:
-        (timeRef[getDateMethod(props.local, 'getMinutes')]() < 10 ? '0' : '') +
-        String(timeRef[getDateMethod(props.local, 'getMinutes')]()),
+        (timeRef[getDateMethod(useLocal, 'getMinutes')]() < 10 ? '0' : '') +
+        String(timeRef[getDateMethod(useLocal, 'getMinutes')]()),
     });
   }
 
@@ -71,8 +78,9 @@ export default class DateTimePicker extends React.Component {
   }
 
   commitTime() {
+    const useLocal = DateTimePicker.isLocal(this.props);
     const dateRef = this.props.value || new Date();
-    const newDate = this.props.local
+    const newDate = useLocal
       ? new Date(
         dateRef.getFullYear(),
         dateRef.getMonth(),
@@ -96,6 +104,7 @@ export default class DateTimePicker extends React.Component {
   }
 
   render() {
+    const useLocal = DateTimePicker.isLocal(this.props);
     return (
       <div
         style={{ width: this.props.width }}
@@ -103,11 +112,11 @@ export default class DateTimePicker extends React.Component {
         onClick={e => e.stopPropagation()}
       >
         <Calendar
-          local={this.props.local}
+          local={useLocal}
           value={this.props.value}
           onChange={newValue => {
             const timeRef = this.props.value || hoursFrom(new Date(), 1);
-            const newDate = this.props.local
+            const newDate = useLocal
               ? new Date(
                 newValue.getFullYear(),
                 newValue.getMonth(),

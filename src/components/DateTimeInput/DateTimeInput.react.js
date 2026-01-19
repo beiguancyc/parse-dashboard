@@ -24,6 +24,11 @@ export default class DateTimeInput extends React.Component {
     this.inputRef = React.createRef();
   }
 
+  // 默认使用本地时间
+  get useLocal() {
+    return this.props.local !== false;
+  }
+
   toggle() {
     this.setState(() => {
       if (this.state.open) {
@@ -65,7 +70,7 @@ export default class DateTimeInput extends React.Component {
           onExternalClick={this.close.bind(this)}
         >
           <DateTimePicker
-            local={this.props.local}
+            local={this.useLocal}
             value={this.props.value}
             width={this.inputRef.current.clientWidth}
             onChange={this.props.onChange}
@@ -82,17 +87,16 @@ export default class DateTimeInput extends React.Component {
       content = (
         <div className={styles.value}>
           <strong>
-            {MONTHS[this.props.value[getDateMethod(this.props.local, 'getMonth')]()].substr(0, 3) +
+            {MONTHS[this.props.value[getDateMethod(this.useLocal, 'getMonth')]()].substr(0, 3) +
               ' ' +
-              this.props.value[getDateMethod(this.props.local, 'getDate')]()}
+              this.props.value[getDateMethod(this.useLocal, 'getDate')]()}
           </strong>
           <span> at </span>
           <strong>
-            {this.props.value[getDateMethod(this.props.local, 'getHours')]()}:
-            {(this.props.value[getDateMethod(this.props.local, 'getMinutes')]() < 10 ? '0' : '') +
-              this.props.value[getDateMethod(this.props.local, 'getMinutes')]()}
+            {this.props.value[getDateMethod(this.useLocal, 'getHours')]()}:
+            {(this.props.value[getDateMethod(this.useLocal, 'getMinutes')]() < 10 ? '0' : '') +
+              this.props.value[getDateMethod(this.useLocal, 'getMinutes')]()}
           </strong>
-          {!this.props.local ? <span> UTC</span> : null}
         </div>
       );
     }

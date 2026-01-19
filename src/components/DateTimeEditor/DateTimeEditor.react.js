@@ -9,6 +9,7 @@ import DateTimePicker from 'components/DateTimePicker/DateTimePicker.react';
 import hasAncestor from 'lib/hasAncestor';
 import React from 'react';
 import styles from 'components/DateTimeEditor/DateTimeEditor.scss';
+import { dateStringUTC } from 'lib/DateUtils';
 
 export default class DateTimeEditor extends React.Component {
   constructor(props) {
@@ -18,7 +19,7 @@ export default class DateTimeEditor extends React.Component {
       open: false,
       position: null,
       value: props.value,
-      text: props.value.toISOString(),
+      text: dateStringUTC(props.value),  // 使用本地时间格式显示
     };
 
     this.checkExternalClick = this.checkExternalClick.bind(this);
@@ -28,7 +29,7 @@ export default class DateTimeEditor extends React.Component {
   }
 
   componentWillReceiveProps(props) {
-    this.setState({ value: props.value, text: props.value.toISOString() });
+    this.setState({ value: props.value, text: dateStringUTC(props.value) });
   }
 
   componentDidMount() {
@@ -75,32 +76,18 @@ export default class DateTimeEditor extends React.Component {
   }
 
   commitDate() {
-    if (this.state.text === this.props.value.toISOString()) {
+    if (this.state.text === dateStringUTC(this.props.value)) {
       return;
     }
     const date = new Date(this.state.text);
     if (isNaN(date.getTime())) {
       this.setState({
         value: this.props.value,
-        text: this.props.value.toISOString(),
+        text: dateStringUTC(this.props.value),
       });
     } else {
-      if (this.state.text.endsWith('Z')) {
-        this.setState({ value: date });
-      } else {
-        const utc = new Date(
-          Date.UTC(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-            date.getHours(),
-            date.getMinutes(),
-            date.getSeconds(),
-            date.getMilliseconds()
-          )
-        );
-        this.setState({ value: utc });
-      }
+      // 用户输入的时间视为本地时间
+      this.setState({ value: date });
     }
   }
 
@@ -112,7 +99,7 @@ export default class DateTimeEditor extends React.Component {
           <DateTimePicker
             value={this.state.value}
             width={240}
-            onChange={value => this.setState({ value: value, text: value.toISOString() })}
+            onChange={value => this.setState({ value: value, text: dateStringUTC(value) })}
             close={() =>
               this.setState({ open: false }, () => this.props.onCommit(this.state.value))
             }

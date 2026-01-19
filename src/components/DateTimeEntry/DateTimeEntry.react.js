@@ -9,15 +9,24 @@ import DateTimePicker from 'components/DateTimePicker/DateTimePicker.react';
 import Popover from 'components/Popover/Popover.react';
 import Position from 'lib/Position';
 import React from 'react';
+import { dateStringUTC } from 'lib/DateUtils';
 
 export default class DateTimeEntry extends React.Component {
+  // 格式化日期为本地时间字符串
+  static formatValue(value) {
+    if (value instanceof Date) {
+      return dateStringUTC(value);
+    }
+    return value;
+  }
+
   constructor(props) {
     super();
 
     this.state = {
       open: false,
       position: null,
-      value: props.value.toISOString ? props.value.toISOString() : props.value,
+      value: DateTimeEntry.formatValue(props.value),
     };
 
     this.rootRef = React.createRef();
@@ -26,7 +35,7 @@ export default class DateTimeEntry extends React.Component {
 
   componentWillReceiveProps(props) {
     this.setState({
-      value: props.value.toISOString ? props.value.toISOString() : props.value,
+      value: DateTimeEntry.formatValue(props.value),
     });
   }
 
@@ -64,26 +73,14 @@ export default class DateTimeEntry extends React.Component {
   }
 
   commitDate() {
-    if (this.state.value === this.props.value.toISOString()) {
+    if (this.state.value === DateTimeEntry.formatValue(this.props.value)) {
       return;
     }
     const date = new Date(this.state.value);
     if (isNaN(date.getTime())) {
-      this.setState({ value: this.props.value.toISOString() });
-    } else if (!this.state.value.toLowerCase().endsWith('z')) {
-      const utc = new Date(
-        Date.UTC(
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate(),
-          date.getHours(),
-          date.getMinutes(),
-          date.getSeconds(),
-          date.getMilliseconds()
-        )
-      );
-      this.props.onChange(utc);
+      this.setState({ value: DateTimeEntry.formatValue(this.props.value) });
     } else {
+      // 用户输入的时间视为本地时间
       this.props.onChange(date);
     }
   }

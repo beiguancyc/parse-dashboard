@@ -18,24 +18,31 @@ import React from 'react';
 import styles from 'components/Calendar/Calendar.scss';
 
 export default class Calendar extends React.Component {
+  // 默认使用本地时间
+  static isLocal(props) {
+    return props.local !== false;
+  }
+
   constructor(props) {
     super();
+    const useLocal = Calendar.isLocal(props);
     const now = props.value || new Date();
     this.state = {
       currentMonth: new Date(
-        now[getDateMethod(props.local, 'getFullYear')](),
-        now[getDateMethod(props.local, 'getMonth')](),
+        now[getDateMethod(useLocal, 'getFullYear')](),
+        now[getDateMethod(useLocal, 'getMonth')](),
         1
       ),
     };
   }
 
   componentWillReceiveProps(props) {
+    const useLocal = Calendar.isLocal(props);
     if (props.value) {
       this.setState({
         currentMonth: new Date(
-          props.value[getDateMethod(props.local, 'getFullYear')](),
-          props.value[getDateMethod(props.local, 'getMonth')](),
+          props.value[getDateMethod(useLocal, 'getFullYear')](),
+          props.value[getDateMethod(useLocal, 'getMonth')](),
           1
         ),
       });
@@ -79,11 +86,12 @@ export default class Calendar extends React.Component {
   }
 
   renderDays() {
+    const useLocal = Calendar.isLocal(this.props);
     const isValueMonth =
       this.props.value &&
-      this.props.value[getDateMethod(this.props.local, 'getFullYear')]() ===
+      this.props.value[getDateMethod(useLocal, 'getFullYear')]() ===
         this.state.currentMonth.getFullYear() &&
-      this.props.value[getDateMethod(this.props.local, 'getMonth')]() ===
+      this.props.value[getDateMethod(useLocal, 'getMonth')]() ===
         this.state.currentMonth.getMonth();
     const offset = this.state.currentMonth.getDay();
     const days = daysInMonth(this.state.currentMonth);
@@ -93,11 +101,11 @@ export default class Calendar extends React.Component {
     }
     for (let i = 1; i <= days; i++) {
       const isSelected =
-        isValueMonth && this.props.value[getDateMethod(this.props.local, 'getDate')]() === i;
+        isValueMonth && this.props.value[getDateMethod(useLocal, 'getDate')]() === i;
       const className = isSelected ? styles.selected : '';
       const onChange = this.props.onChange.bind(
         null,
-        this.props.local
+        useLocal
           ? new Date(this.state.currentMonth.getFullYear(), this.state.currentMonth.getMonth(), i)
           : new Date(
             Date.UTC(this.state.currentMonth.getFullYear(), this.state.currentMonth.getMonth(), i)
