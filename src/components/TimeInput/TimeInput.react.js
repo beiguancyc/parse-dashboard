@@ -9,11 +9,14 @@ import Dropdown from 'components/Dropdown/Dropdown.react';
 import Option from 'components/Dropdown/Option.react';
 import React from 'react';
 
+// 生成小时选项 (00-23)，补零保证两位数显示
 const hourOptions = [];
 for (let i = 0; i < 24; i++) {
+  // 补零：0 -> "00", 9 -> "09", 10 -> "10"
+  const content = String(i).padStart(2, '0');
   hourOptions.push(
     <Option key={`hour_${i}`} value={String(i)}>
-      {i}
+      {content}
     </Option>
   );
 }

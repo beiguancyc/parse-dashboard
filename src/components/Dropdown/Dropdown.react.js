@@ -63,7 +63,9 @@ export default class Dropdown extends React.Component {
   render() {
     let popover = null;
     if (this.state.open && !this.props.disabled) {
-      const width = this.dropdownRef.current.clientWidth;
+      // 确保下拉菜单有足够的最小宽度显示内容
+      const minWidth = 70;
+      const width = Math.max(this.dropdownRef.current.clientWidth, minWidth);
       const popoverChildren = (
         <SliderWrap direction={Directions.DOWN} expanded={true}>
           <div style={{ width }} className={styles.menu}>

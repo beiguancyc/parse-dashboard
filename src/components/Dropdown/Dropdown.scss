@@ -27,6 +27,7 @@
   border: 1px solid $blue;
   background: white;
   overflow: auto;
+  min-width: 60px;  // 确保下拉菜单有足够宽度显示两位数字
 
   button {
     @include buttonReset;

@@ -322,14 +322,13 @@ const FilterRow = ({
     }
   }, []);
 
-  const buildFieldSuggestions = input => {
-    const regex = new RegExp(input.split('').join('.*?'), 'i');
-    return fields.filter(f => regex.test(f));
-  };
   const buildClassSuggestions = input => {
     const regex = new RegExp(input.split('').join('.*?'), 'i');
     return classes.filter(f => regex.test(f));
   };
+
+  // 字段列表按字母排序
+  const sortedFields = [...fields].sort((a, b) => a.localeCompare(b));
 
   return (
     <div className={`${styles.row} ${styles.flex}`}>
@@ -368,40 +367,13 @@ const FilterRow = ({
         buildSuggestions={buildClassSuggestions}
         buildLabel={() => ''}
       />
-      <Autocomplete
-        inputStyle={{
-          transition: '0s background-color ease-in-out',
-        }}
-        suggestionsStyle={{
-          width: '140px',
-          maxHeight: '360px',
-          overflowY: 'auto',
-          fontSize: '14px',
-          background: '#343445',
-          borderBottomLeftRadius: '5px',
-          borderBottomRightRadius: '5px',
-          color: 'white',
-          cursor: 'pointer',
-        }}
-        suggestionsItemStyle={{
-          background: '#343445',
-          color: 'white',
-          height: '30px',
-          lineHeight: '30px',
-          borderBottom: '0px',
-        }}
-        containerStyle={{
-          display: 'inline-block',
-          width: '140px',
-          verticalAlign: 'top',
-          height: '30px',
-        }}
-        strict={true}
+      {/* 字段下拉选择，按字母排序 */}
+      <ChromeDropdown
+        color={active ? 'blue' : 'purple'}
         value={currentField}
-        suggestions={fields}
+        options={sortedFields}
         onChange={onChangeField}
-        buildSuggestions={buildFieldSuggestions}
-        buildLabel={() => ''}
+        width="140"
       />
       <div style={{ flex: 1 }}>
         <ChromeDropdown
