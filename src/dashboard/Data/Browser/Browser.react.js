@@ -3028,7 +3028,8 @@ class Browser extends DashboardView {
         <Helmet>
           <title>{pageTitle}</title>
         </Helmet>
-        <SelectedRowsNavigationPrompt when={selectionCount > 0 && !this.state.exporting} />
+        {/* 禁用选中行时的导航确认弹窗 */}
+        {/* <SelectedRowsNavigationPrompt when={selectionCount > 0 && !this.state.exporting} /> */}
         {browser}
         {notification}
         {extras}
