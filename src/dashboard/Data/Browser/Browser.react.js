@@ -1238,11 +1238,6 @@ class Browser extends DashboardView {
   }
 
   async refresh() {
-    if (Object.keys(this.state.selection).length > 0) {
-      if (!window.confirm(SELECTED_ROWS_MESSAGE)) {
-        return false;
-      }
-    }
     const relation = this.state.relation;
     const prevFilters = this.state.filters || new List();
     const initialState = {
@@ -1478,13 +1473,6 @@ class Browser extends DashboardView {
   }
 
   updateFilters(filters) {
-    // Check if there are selected rows
-    if (Object.keys(this.state.selection).length > 0) {
-      if (!window.confirm(SELECTED_ROWS_MESSAGE)) {
-        return;
-      }
-    }
-
     const relation = this.state.relation;
     if (relation) {
       this.setRelation(relation, filters);
