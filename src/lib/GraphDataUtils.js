@@ -6,6 +6,8 @@
  * the root directory of this source tree.
  */
 
+import { evaluateFormula, buildVariables } from './FormulaEvaluator';
+
 /**
  * Utility functions for processing Parse data into chart-compatible formats
  */
@@ -200,10 +202,44 @@ export function aggregateValues(values, aggregationType = 'count') {
  * Calculate a value based on operator and fields
  * @param {Object} item - Data item
  * @param {Array<string>} fields - Fields to use in calculation
- * @param {string} operator - Calculation operator (sum, percent, average, difference, ratio)
+ * @param {string} operator - Calculation operator (sum, percent, average, difference, ratio, formula)
+ * @param {string} formula - Formula string (only used when operator is 'formula')
+ * @param {Array<string>} availableFields - All available field names for formula evaluation
  * @returns {number|null} Calculated value or null
  */
-function calculateValue(item, fields, operator) {
+function calculateValue(item, fields, operator, formula = null, availableFields = []) {
+  // Handle formula operator separately
+  if (operator === 'formula') {
+    if (!formula || typeof formula !== 'string' || formula.trim() === '') {
+      return null;
+    }
+
+    // Build variables from all available fields
+    const fieldValues = {};
+    for (const field of availableFields) {
+      const rawValue = getNestedValue(item, field);
+      const numericValue = extractNumericValue(rawValue);
+      if (field) {
+        fieldValues[field] = numericValue !== null ? numericValue : 0;
+      }
+    }
+
+    // Add item attributes directly (for previous calculated values)
+    const data = item.attributes || item;
+    for (const key of Object.keys(data)) {
+      if (key && !(key in fieldValues)) {
+        const value = data[key];
+        if (typeof value === 'number' && isFinite(value)) {
+          fieldValues[key] = value;
+        }
+      }
+    }
+
+    // Build variables with both plain and $-prefixed versions
+    return evaluateFormula(formula, buildVariables(fieldValues));
+  }
+
+  // Standard operators require fields
   if (!fields || fields.length === 0) {
     return null;
   }
@@ -275,43 +311,6 @@ function createGroupKey(item, groupByColumns) {
 }
 
 /**
- * Group data by a column and apply aggregation
- * @param {Array} data - Array of Parse objects
- * @param {string|Array<string>} groupByColumn - Column(s) to group by
- * @param {string} valueColumn - Column to aggregate
- * @param {string} aggregationType - Aggregation type
- * @returns {Object} Grouped and aggregated data
- */
-export function groupAndAggregate(data, groupByColumn, valueColumn, aggregationType = 'count') {
-  const groups = {};
-
-  data.forEach(item => {
-    const rawValue = getNestedValue(item, valueColumn);
-    const value = extractNumericValue(rawValue);
-
-    // Create composite group key from potentially multiple columns
-    const groupKey = createGroupKey(item, groupByColumn);
-
-    if (!groups[groupKey]) {
-      groups[groupKey] = [];
-    }
-
-    // Only add numeric values for aggregation
-    if (value !== null) {
-      groups[groupKey].push(value);
-    }
-  });
-
-  // Apply aggregation to each group
-  const result = {};
-  Object.keys(groups).forEach(groupKey => {
-    result[groupKey] = aggregateValues(groups[groupKey], aggregationType);
-  });
-
-  return result;
-}
-
-/**
  * Process data for scatter plots
  * @param {Array} data - Array of Parse objects
  * @param {string} xColumn - X-axis column
@@ -354,52 +353,129 @@ export function processScatterData(data, xColumn, yColumn, maxPoints = 1000) {
 }
 
 /**
+ * Get the display label for a series
+ * @param {Object} s - Series definition
+ * @param {number} index - Series index (for fallback naming)
+ * @returns {string} Series label
+ */
+function getSeriesLabel(s, index) {
+  // Use title if provided
+  if (s.title && s.title.trim() !== '') {
+    return s.title;
+  }
+  // Fall back to fields
+  const fields = s.fields || [];
+  if (fields.length === 1) {
+    return fields[0];
+  }
+  if (fields.length > 1) {
+    return fields.join(' + ');
+  }
+  // Last resort
+  return `Series ${index + 1}`;
+}
+
+/**
  * Process data for pie/doughnut charts
  * @param {Array} data - Array of Parse objects
- * @param {string|Array<string>} valueColumn - Value column(s) for aggregation
+ * @param {Array} series - Series definitions with fields, title, aggregationType, color, etc.
  * @param {string|Array<string>} groupByColumn - Column(s) to group by (optional)
- * @param {string} aggregationType - Aggregation type
  * @param {Array} calculatedValues - Calculated value definitions (optional)
  * @returns {Object} Chart.js compatible data
  */
-export function processPieData(data, valueColumn, groupByColumn, aggregationType = 'count', calculatedValues = null) {
-  if (!valueColumn || !Array.isArray(data)) {
+export function processPieData(data, series, groupByColumn, calculatedValues = null) {
+  if (!Array.isArray(data)) {
     return null;
   }
 
-  // Convert single valueColumn to array for uniform handling
-  const valueColumns = Array.isArray(valueColumn) ? valueColumn : [valueColumn];
+  // Convert series to array if needed and extract value columns
+  const seriesArray = Array.isArray(series) ? series : [];
+  const hasCalculatedValues = calculatedValues && Array.isArray(calculatedValues) && calculatedValues.length > 0;
 
-  if (valueColumns.length === 0) {
+  // Must have at least one series or calculated value
+  if (seriesArray.length === 0 && !hasCalculatedValues) {
     return null;
   }
 
-  let aggregatedData = {};
+  // Build a map of series styles for color lookup
+  // Use title if available, otherwise first field or generated name
+  const seriesStyleMap = new Map();
+  seriesArray.forEach((s, idx) => {
+    const seriesLabel = getSeriesLabel(s, idx);
+    seriesStyleMap.set(seriesLabel, s);
+  });
+
+  const aggregatedData = {};
 
   if (groupByColumn) {
-    // Group by column and aggregate for each value column
-    valueColumns.forEach(valCol => {
-      const columnData = groupAndAggregate(data, groupByColumn, valCol, aggregationType);
-      // Prefix keys with column name if multiple columns
-      if (valueColumns.length > 1) {
-        Object.keys(columnData).forEach(key => {
-          aggregatedData[`${valCol} (${key})`] = columnData[key];
-        });
-      } else {
-        aggregatedData = { ...aggregatedData, ...columnData };
+    // Group by column and aggregate for each series
+    seriesArray.forEach((s, idx) => {
+      const fields = s.fields || [];
+      if (fields.length === 0) {
+        return;
       }
+
+      const seriesLabel = getSeriesLabel(s, idx);
+
+      // For multi-field series, we need to aggregate across all fields
+      const groups = {};
+      data.forEach(item => {
+        const groupKey = createGroupKey(item, groupByColumn);
+        if (!groups[groupKey]) {
+          groups[groupKey] = [];
+        }
+
+        // Sum values from all fields in this series for this item
+        let combinedValue = 0;
+        let hasValue = false;
+        fields.forEach(field => {
+          const rawValue = getNestedValue(item, field);
+          const value = extractNumericValue(rawValue);
+          if (value !== null) {
+            combinedValue += value;
+            hasValue = true;
+          }
+        });
+
+        if (hasValue) {
+          groups[groupKey].push(combinedValue);
+        }
+      });
+
+      // Apply aggregation to each group
+      Object.keys(groups).forEach(groupKey => {
+        const labelKey = `${seriesLabel} (${groupKey})`;
+        aggregatedData[labelKey] = aggregateValues(groups[groupKey], s.aggregationType || 'count');
+      });
     });
   } else {
-    // Aggregate each value column separately
-    valueColumns.forEach(valCol => {
+    // Aggregate each series separately
+    seriesArray.forEach((s, idx) => {
+      const fields = s.fields || [];
+      if (fields.length === 0) {
+        return;
+      }
+
+      const seriesLabel = getSeriesLabel(s, idx);
+
+      // For multi-field series, sum values from all fields for each item
       const values = data
         .map(item => {
-          const rawValue = getNestedValue(item, valCol);
-          return extractNumericValue(rawValue);
+          let combinedValue = 0;
+          let hasValue = false;
+          fields.forEach(field => {
+            const rawValue = getNestedValue(item, field);
+            const value = extractNumericValue(rawValue);
+            if (value !== null) {
+              combinedValue += value;
+              hasValue = true;
+            }
+          });
+          return hasValue ? combinedValue : null;
         })
         .filter(val => val !== null);
 
-      aggregatedData[valCol] = aggregateValues(values, aggregationType);
+      aggregatedData[seriesLabel] = aggregateValues(values, s.aggregationType || 'count');
     });
   }
 
@@ -410,7 +486,12 @@ export function processPieData(data, valueColumn, groupByColumn, aggregationType
       const calculatedValuesForRow = {};
 
       calculatedValues.forEach(calc => {
-        if (calc.fields && calc.fields.length > 0 && calc.name) {
+        // Formula operator doesn't require fields, other operators do
+        const hasRequiredConfig = calc.operator === 'formula'
+          ? (calc.formula && calc.name)
+          : (calc.fields && calc.fields.length > 0 && calc.name);
+
+        if (hasRequiredConfig) {
           // Create an enhanced item that includes previously calculated values
           const enhancedItem = { ...item };
           if (item.attributes) {
@@ -419,7 +500,29 @@ export function processPieData(data, valueColumn, groupByColumn, aggregationType
             Object.assign(enhancedItem, calculatedValuesForRow);
           }
 
-          const calcValue = calculateValue(enhancedItem, calc.fields, calc.operator);
+          // Build available fields for formula evaluation
+          const availableFields = [];
+          seriesArray.forEach((s, idx) => {
+            const fields = s.fields || [];
+            fields.forEach(field => {
+              if (!availableFields.includes(field)) {
+                availableFields.push(field);
+              }
+            });
+            // Also add series title if present
+            const seriesLabel = getSeriesLabel(s, idx);
+            if (seriesLabel && !availableFields.includes(seriesLabel)) {
+              availableFields.push(seriesLabel);
+            }
+          });
+          // Add previously calculated value names
+          Object.keys(calculatedValuesForRow).forEach(name => {
+            if (!availableFields.includes(name)) {
+              availableFields.push(name);
+            }
+          });
+
+          const calcValue = calculateValue(enhancedItem, calc.fields, calc.operator, calc.formula, availableFields);
           calculatedValuesForRow[calc.name] = calcValue;
         }
       });
@@ -429,10 +532,20 @@ export function processPieData(data, valueColumn, groupByColumn, aggregationType
 
     // Now process each calculated value with grouping
     calculatedValues.forEach(calc => {
-      if (calc.fields && calc.fields.length > 0 && calc.name) {
+      // Formula operator doesn't require fields, other operators do
+      const hasRequiredConfig = calc.operator === 'formula'
+        ? (calc.formula && calc.name)
+        : (calc.fields && calc.fields.length > 0 && calc.name);
+
+      if (hasRequiredConfig) {
         if (groupByColumn) {
           // Group calculated values by the same groupByColumn
           const groups = {};
+          // For percent operator, track numerator/denominator separately
+          const percentComponents = {};
+          // For average operator, track field values separately
+          const averageComponents = {};
+
           rowsWithCalcValues.forEach(({ item, calculatedValues: calcVals }) => {
             const calcValue = calcVals[calc.name];
             if (calcValue !== null) {
@@ -441,23 +554,66 @@ export function processPieData(data, valueColumn, groupByColumn, aggregationType
                 groups[groupKey] = [];
               }
               groups[groupKey].push(calcValue);
+
+              const enhancedItem = { ...item };
+              if (item.attributes) {
+                enhancedItem.attributes = { ...item.attributes, ...calcVals };
+              } else {
+                Object.assign(enhancedItem, calcVals);
+              }
+
+              // For percent operator, also track raw numerator/denominator
+              if (calc.operator === 'percent' && calc.fields && calc.fields.length >= 2) {
+                const numVal = extractNumericValue(getNestedValue(enhancedItem, calc.fields[0]));
+                const denVal = extractNumericValue(getNestedValue(enhancedItem, calc.fields[1]));
+                if (numVal !== null && denVal !== null) {
+                  if (!percentComponents[groupKey]) {
+                    percentComponents[groupKey] = { numerators: [], denominators: [] };
+                  }
+                  percentComponents[groupKey].numerators.push(numVal);
+                  percentComponents[groupKey].denominators.push(denVal);
+                }
+              }
+
+              // For average operator, track individual field values
+              if (calc.operator === 'average' && calc.fields && calc.fields.length > 0) {
+                if (!averageComponents[groupKey]) {
+                  averageComponents[groupKey] = { values: [], numFields: calc.fields.length };
+                }
+                calc.fields.forEach(field => {
+                  const numVal = extractNumericValue(getNestedValue(enhancedItem, field));
+                  if (numVal !== null) {
+                    averageComponents[groupKey].values.push(numVal);
+                  }
+                });
+              }
             }
           });
 
           // Aggregate each group
           Object.keys(groups).forEach(groupKey => {
-            const labelKey = valueColumns.length > 1 || calculatedValues.length > 1
-              ? `${calc.name} (${groupKey})`
-              : groupKey;
-            // For ratio-based operators (percent, ratio), average the results
-            // For other operators, sum the results
-            let aggType = 'sum';
-            if (calc.operator === 'percent' || calc.operator === 'ratio') {
-              aggType = 'avg';
-            } else if (calc.operator === 'average') {
-              aggType = 'avg';
+            const labelKey = `${calc.name} (${groupKey})`;
+
+            // For percent operator, calculate (sum of numerators / sum of denominators) * 100
+            if (calc.operator === 'percent' && percentComponents[groupKey]) {
+              const components = percentComponents[groupKey];
+              const sumNumerator = components.numerators.reduce((acc, val) => acc + val, 0);
+              const sumDenominator = components.denominators.reduce((acc, val) => acc + val, 0);
+              aggregatedData[labelKey] = sumDenominator !== 0 ? (sumNumerator / sumDenominator) * 100 : 0;
+            } else if (calc.operator === 'average' && averageComponents[groupKey]) {
+              // For average operator, calculate (sum of all field values) / numFields
+              const components = averageComponents[groupKey];
+              const sumValues = components.values.reduce((acc, val) => acc + val, 0);
+              aggregatedData[labelKey] = components.numFields > 0 ? sumValues / components.numFields : 0;
+            } else {
+              // For other ratio-based operators (ratio, formula), average the results
+              // For other operators, sum the results
+              let aggType = 'sum';
+              if (calc.operator === 'ratio' || calc.operator === 'formula') {
+                aggType = 'avg';
+              }
+              aggregatedData[labelKey] = aggregateValues(groups[groupKey], aggType);
             }
-            aggregatedData[labelKey] = aggregateValues(groups[groupKey], aggType);
           });
         } else {
           // No grouping - aggregate all calculated values together
@@ -466,15 +622,53 @@ export function processPieData(data, valueColumn, groupByColumn, aggregationType
             .filter(val => val !== null);
 
           if (calcValues.length > 0) {
-            // For ratio-based operators (percent, ratio), average the results
-            // For other operators, sum the results
-            let aggType = 'sum';
-            if (calc.operator === 'percent' || calc.operator === 'ratio') {
-              aggType = 'avg';
-            } else if (calc.operator === 'average') {
-              aggType = 'avg';
+            // For percent operator, calculate (sum of numerators / sum of denominators) * 100
+            if (calc.operator === 'percent' && calc.fields && calc.fields.length >= 2) {
+              let sumNumerator = 0;
+              let sumDenominator = 0;
+              rowsWithCalcValues.forEach(({ item, calculatedValues: calcVals }) => {
+                const enhancedItem = { ...item };
+                if (item.attributes) {
+                  enhancedItem.attributes = { ...item.attributes, ...calcVals };
+                } else {
+                  Object.assign(enhancedItem, calcVals);
+                }
+                const numVal = extractNumericValue(getNestedValue(enhancedItem, calc.fields[0]));
+                const denVal = extractNumericValue(getNestedValue(enhancedItem, calc.fields[1]));
+                if (numVal !== null && denVal !== null) {
+                  sumNumerator += numVal;
+                  sumDenominator += denVal;
+                }
+              });
+              aggregatedData[calc.name] = sumDenominator !== 0 ? (sumNumerator / sumDenominator) * 100 : 0;
+            } else if (calc.operator === 'average' && calc.fields && calc.fields.length > 0) {
+              // For average operator, calculate (sum of all field values) / numFields
+              let sumValues = 0;
+              const numFields = calc.fields.length;
+              rowsWithCalcValues.forEach(({ item, calculatedValues: calcVals }) => {
+                const enhancedItem = { ...item };
+                if (item.attributes) {
+                  enhancedItem.attributes = { ...item.attributes, ...calcVals };
+                } else {
+                  Object.assign(enhancedItem, calcVals);
+                }
+                calc.fields.forEach(field => {
+                  const numVal = extractNumericValue(getNestedValue(enhancedItem, field));
+                  if (numVal !== null) {
+                    sumValues += numVal;
+                  }
+                });
+              });
+              aggregatedData[calc.name] = numFields > 0 ? sumValues / numFields : 0;
+            } else {
+              // For other ratio-based operators (ratio, formula), average the results
+              // For other operators, sum the results
+              let aggType = 'sum';
+              if (calc.operator === 'ratio' || calc.operator === 'formula') {
+                aggType = 'avg';
+              }
+              aggregatedData[calc.name] = aggregateValues(calcValues, aggType);
             }
-            aggregatedData[calc.name] = aggregateValues(calcValues, aggType);
           }
         }
       }
@@ -488,7 +682,31 @@ export function processPieData(data, valueColumn, groupByColumn, aggregationType
     return null;
   }
 
-  const colors = generateColors(labels.length);
+  // Generate default colors, then apply custom colors from series or calculated values
+  const defaultColors = generateColors(labels.length);
+
+  // Build a map of colors from calculated values
+  const calcValueColorMap = new Map();
+  if (calculatedValues && Array.isArray(calculatedValues)) {
+    calculatedValues.forEach(calc => {
+      if (calc.name && calc.color) {
+        calcValueColorMap.set(calc.name, calc.color);
+      }
+    });
+  }
+
+  const colors = labels.map((label, index) => {
+    // Check series style map first
+    const seriesStyle = seriesStyleMap.get(label);
+    if (seriesStyle && seriesStyle.color) {
+      return seriesStyle.color;
+    }
+    // Check calculated value color
+    if (calcValueColorMap.has(label)) {
+      return calcValueColorMap.get(label);
+    }
+    return defaultColors[index];
+  });
 
   return {
     labels,
@@ -505,27 +723,42 @@ export function processPieData(data, valueColumn, groupByColumn, aggregationType
  * Process data for bar/line/radar charts
  * @param {Array} data - Array of Parse objects
  * @param {string} xColumn - X-axis column
- * @param {string|Array<string>} valueColumn - Value column(s)
+ * @param {Array} series - Series definitions with field, aggregationType, color, etc.
  * @param {string|Array<string>} groupByColumn - Column(s) to group by (optional)
- * @param {string} aggregationType - Aggregation type
  * @param {Array} calculatedValues - Calculated value definitions (optional)
  * @returns {Object} Chart.js compatible data
  */
-export function processBarLineData(data, xColumn, valueColumn, groupByColumn, aggregationType = 'count', calculatedValues = null) {
-  if (!xColumn || !valueColumn || !Array.isArray(data)) {
+export function processBarLineData(data, xColumn, series, groupByColumn, calculatedValues = null) {
+  if (!xColumn || !Array.isArray(data)) {
     return null;
   }
 
-  // Convert single valueColumn to array for uniform handling
-  const valueColumns = Array.isArray(valueColumn) ? valueColumn : [valueColumn];
+  // Convert series to array if needed
+  const seriesArray = Array.isArray(series) ? series : [];
+  const hasCalculatedValues = calculatedValues && Array.isArray(calculatedValues) && calculatedValues.length > 0;
 
-  if (valueColumns.length === 0) {
+  // Must have at least one series or calculated value
+  if (seriesArray.length === 0 && !hasCalculatedValues) {
     return null;
   }
+
+  // Build a map of series styles for lookup
+  // Use title if available, otherwise first field or generated name
+  const seriesStyleMap = new Map();
+  seriesArray.forEach((s, idx) => {
+    const seriesLabel = getSeriesLabel(s, idx);
+    seriesStyleMap.set(seriesLabel, s);
+  });
 
   // Collect unique x-axis values and group data
   const xValues = new Map(); // Use Map to store both raw value and formatted label
   const groups = {};
+  // Special tracking for percent operator - stores raw numerator/denominator values
+  // so we can calculate (sum of numerators / sum of denominators) * 100 instead of averaging percentages
+  const percentComponents = {};
+  // Special tracking for average operator - stores individual field values
+  // so we can calculate (sum of all field values) / numFields instead of averaging per-row averages
+  const averageComponents = {};
   let isDateAxis = false;
   let hasNonDateAxisValue = false;
 
@@ -553,22 +786,34 @@ export function processBarLineData(data, xColumn, valueColumn, groupByColumn, ag
     // Create an extended item that will hold calculated values for this row
     const calculatedValuesForRow = {};
 
-    // Process each value column
-    valueColumns.forEach(valCol => {
-      const rawValue = getNestedValue(item, valCol);
-      const value = extractNumericValue(rawValue);
+    // Process each series
+    seriesArray.forEach((s, idx) => {
+      const fields = s.fields || [];
+      if (fields.length === 0) {
+        return;
+      }
 
-      if (value === null) {return;}
+      const seriesLabel = getSeriesLabel(s, idx);
+
+      // For multi-field series, sum values from all fields
+      let combinedValue = 0;
+      let hasValue = false;
+      fields.forEach(field => {
+        const rawValue = getNestedValue(item, field);
+        const value = extractNumericValue(rawValue);
+        if (value !== null) {
+          combinedValue += value;
+          hasValue = true;
+        }
+      });
+
+      if (!hasValue) {return;}
 
       // Handle groupBy column(s) - create composite key if multiple columns
-      let groupKeyValue = valCol; // Use column name as default group
+      let groupKeyValue = seriesLabel; // Use series label as default group
       if (groupByColumn && (Array.isArray(groupByColumn) ? groupByColumn.length > 0 : true)) {
         const compositeKey = createGroupKey(item, groupByColumn);
-        groupKeyValue = compositeKey;
-        // When groupBy is specified, combine with column name for unique series
-        if (valueColumns.length > 1) {
-          groupKeyValue = `${valCol} (${compositeKey})`;
-        }
+        groupKeyValue = `${seriesLabel} (${compositeKey})`;
       }
       const groupKey = groupKeyValue;
 
@@ -578,13 +823,18 @@ export function processBarLineData(data, xColumn, valueColumn, groupByColumn, ag
       if (!groups[groupKey][xKey]) {
         groups[groupKey][xKey] = [];
       }
-      groups[groupKey][xKey].push(value);
+      groups[groupKey][xKey].push(combinedValue);
     });
 
     // Process calculated values - with support for referencing other calculated values
     if (calculatedValues && Array.isArray(calculatedValues)) {
       calculatedValues.forEach(calc => {
-        if (calc.fields && calc.fields.length > 0 && calc.name) {
+        // Formula operator doesn't require fields, other operators do
+        const hasRequiredConfig = calc.operator === 'formula'
+          ? (calc.formula && calc.name)
+          : (calc.fields && calc.fields.length > 0 && calc.name);
+
+        if (hasRequiredConfig) {
           // Create an enhanced item that includes previously calculated values
           const enhancedItem = { ...item };
           if (item.attributes) {
@@ -593,7 +843,29 @@ export function processBarLineData(data, xColumn, valueColumn, groupByColumn, ag
             Object.assign(enhancedItem, calculatedValuesForRow);
           }
 
-          const calcValue = calculateValue(enhancedItem, calc.fields, calc.operator);
+          // Build available fields for formula evaluation
+          const availableFields = [];
+          seriesArray.forEach((s, idx) => {
+            const fields = s.fields || [];
+            fields.forEach(field => {
+              if (!availableFields.includes(field)) {
+                availableFields.push(field);
+              }
+            });
+            // Also add series title if present
+            const seriesLabel = getSeriesLabel(s, idx);
+            if (seriesLabel && !availableFields.includes(seriesLabel)) {
+              availableFields.push(seriesLabel);
+            }
+          });
+          // Add previously calculated value names
+          Object.keys(calculatedValuesForRow).forEach(name => {
+            if (!availableFields.includes(name)) {
+              availableFields.push(name);
+            }
+          });
+
+          const calcValue = calculateValue(enhancedItem, calc.fields, calc.operator, calc.formula, availableFields);
 
           // Store this calculated value so it can be referenced by subsequent calculations
           calculatedValuesForRow[calc.name] = calcValue;
@@ -603,11 +875,7 @@ export function processBarLineData(data, xColumn, valueColumn, groupByColumn, ag
             let groupKeyValue = calc.name;
             if (groupByColumn && (Array.isArray(groupByColumn) ? groupByColumn.length > 0 : true)) {
               const compositeKey = createGroupKey(item, groupByColumn);
-              groupKeyValue = compositeKey;
-              // When groupBy is specified, combine with calc name for unique series
-              if (calculatedValues.length > 1 || valueColumns.length > 0) {
-                groupKeyValue = `${calc.name} (${compositeKey})`;
-              }
+              groupKeyValue = `${calc.name} (${compositeKey})`;
             }
             const groupKey = groupKeyValue;
 
@@ -617,6 +885,49 @@ export function processBarLineData(data, xColumn, valueColumn, groupByColumn, ag
             if (!groups[groupKey][xKey]) {
               groups[groupKey][xKey] = [];
             }
+
+            // For percent operator, store raw numerator/denominator values separately
+            // so we can calculate (sum of numerators / sum of denominators) * 100
+            // instead of averaging individual percentages
+            if (calc.operator === 'percent' && calc.fields && calc.fields.length >= 2) {
+              // Extract numerator and denominator values
+              const numeratorValue = getNestedValue(enhancedItem, calc.fields[0]);
+              const denominatorValue = getNestedValue(enhancedItem, calc.fields[1]);
+              const numVal = extractNumericValue(numeratorValue);
+              const denVal = extractNumericValue(denominatorValue);
+
+              if (numVal !== null && denVal !== null) {
+                if (!percentComponents[groupKey]) {
+                  percentComponents[groupKey] = {};
+                }
+                if (!percentComponents[groupKey][xKey]) {
+                  percentComponents[groupKey][xKey] = { numerators: [], denominators: [] };
+                }
+                percentComponents[groupKey][xKey].numerators.push(numVal);
+                percentComponents[groupKey][xKey].denominators.push(denVal);
+              }
+            }
+
+            // For average operator, store individual field values separately
+            // so we can calculate (sum of all field values) / numFields
+            // instead of averaging individual per-row averages
+            if (calc.operator === 'average' && calc.fields && calc.fields.length > 0) {
+              if (!averageComponents[groupKey]) {
+                averageComponents[groupKey] = {};
+              }
+              if (!averageComponents[groupKey][xKey]) {
+                averageComponents[groupKey][xKey] = { values: [], numFields: calc.fields.length };
+              }
+              // Store each field value
+              calc.fields.forEach(field => {
+                const fieldValue = getNestedValue(enhancedItem, field);
+                const numVal = extractNumericValue(fieldValue);
+                if (numVal !== null) {
+                  averageComponents[groupKey][xKey].values.push(numVal);
+                }
+              });
+            }
+
             groups[groupKey][xKey].push(calcValue);
           }
         }
@@ -647,21 +958,84 @@ export function processBarLineData(data, xColumn, valueColumn, groupByColumn, ag
   const sortedXLabels = sortedXKeys.map(key => xValues.get(key));
   const groupKeys = Object.keys(groups);
 
-  // Create maps for calculated value properties (operator, secondary Y axis)
+  // Create maps for series properties (aggregationType, chartType, color, line style, bar style, secondary Y axis)
+  // This handles both simple series labels and grouped names like "SeriesLabel (GroupValue)"
+  const seriesAggregationMap = new Map();
+  const seriesChartTypeMap = new Map();
+  const seriesSecondaryYAxisMap = new Map();
+  const seriesColorMap = new Map();
+  const seriesLineStyleMap = new Map();
+  const seriesBarStyleMap = new Map();
+  const seriesStrokeWidthMap = new Map();
+  seriesArray.forEach((s, idx) => {
+    const seriesLabel = getSeriesLabel(s, idx);
+    // Map all possible variations of this series' group keys
+    groupKeys.forEach(groupKey => {
+      // Check if this groupKey belongs to this series
+      // Series/calc names cannot contain parentheses, so startsWith is safe
+      const belongsToSeries = groupKey === seriesLabel || groupKey.startsWith(`${seriesLabel} (`);
+
+      if (belongsToSeries) {
+        seriesAggregationMap.set(groupKey, s.aggregationType || 'count');
+        if (s.chartType) {
+          seriesChartTypeMap.set(groupKey, s.chartType);
+        }
+        if (s.useSecondaryYAxis) {
+          seriesSecondaryYAxisMap.set(groupKey, true);
+        }
+        if (s.color) {
+          seriesColorMap.set(groupKey, s.color);
+        }
+        if (s.lineStyle) {
+          seriesLineStyleMap.set(groupKey, s.lineStyle);
+        }
+        if (s.barStyle) {
+          seriesBarStyleMap.set(groupKey, s.barStyle);
+        }
+        if (s.strokeWidth != null) {
+          seriesStrokeWidthMap.set(groupKey, s.strokeWidth);
+        }
+      }
+    });
+  });
+
+  // Create maps for calculated value properties (operator, chartType, secondary Y axis, color, line style, bar style)
   // This handles both simple calc names and grouped calc names like "CalcName (GroupValue)"
   const calcValueOperatorMap = new Map();
+  const calcValueChartTypeMap = new Map();
   const calcValueSecondaryYAxisMap = new Map();
+  const calcValueColorMap = new Map();
+  const calcValueLineStyleMap = new Map();
+  const calcValueBarStyleMap = new Map();
+  const calcValueStrokeWidthMap = new Map();
   if (calculatedValues && Array.isArray(calculatedValues)) {
     calculatedValues.forEach(calc => {
       if (calc.name && calc.operator) {
         // Map all possible variations of this calculated value's group keys
         groupKeys.forEach(groupKey => {
-          // Check if this groupKey is for this calculated value
-          // It either matches exactly, or starts with "CalcName ("
-          if (groupKey === calc.name || groupKey.startsWith(`${calc.name} (`)) {
+          // Check if this groupKey belongs to this calculated value
+          // Calc names cannot contain parentheses, so startsWith is safe
+          const belongsToCalc = groupKey === calc.name || groupKey.startsWith(`${calc.name} (`);
+
+          if (belongsToCalc) {
             calcValueOperatorMap.set(groupKey, calc.operator);
+            if (calc.chartType) {
+              calcValueChartTypeMap.set(groupKey, calc.chartType);
+            }
             if (calc.useSecondaryYAxis) {
               calcValueSecondaryYAxisMap.set(groupKey, true);
+            }
+            if (calc.color) {
+              calcValueColorMap.set(groupKey, calc.color);
+            }
+            if (calc.lineStyle) {
+              calcValueLineStyleMap.set(groupKey, calc.lineStyle);
+            }
+            if (calc.barStyle) {
+              calcValueBarStyleMap.set(groupKey, calc.barStyle);
+            }
+            if (calc.strokeWidth != null) {
+              calcValueStrokeWidthMap.set(groupKey, calc.strokeWidth);
             }
           }
         });
@@ -670,7 +1044,7 @@ export function processBarLineData(data, xColumn, valueColumn, groupByColumn, ag
   }
 
   // Generate colors once for all datasets
-  const colors = generateColors(groupKeys.length);
+  const defaultColors = generateColors(groupKeys.length);
 
   const datasets = groupKeys.map((groupKey, index) => {
     const groupData = groups[groupKey];
@@ -681,35 +1055,84 @@ export function processBarLineData(data, xColumn, valueColumn, groupByColumn, ag
       const calcOperator = calcValueOperatorMap.get(groupKey);
 
       if (calcOperator) {
-        // For calculated values, the operator has already been applied at row level
-        // For ratio-based operators (percent, ratio), we should average the results
-        // For other operators (sum, average, difference), we sum the results
-        let aggregationType = 'sum';
-        if (calcOperator === 'percent' || calcOperator === 'ratio') {
-          aggregationType = 'avg';
-        } else if (calcOperator === 'average') {
-          aggregationType = 'avg';
+        // Special handling for percent operator: calculate (sum of numerators / sum of denominators) * 100
+        // This gives the correct percentage of totals rather than average of individual percentages
+        if (calcOperator === 'percent' && percentComponents[groupKey] && percentComponents[groupKey][xKey]) {
+          const components = percentComponents[groupKey][xKey];
+          const sumNumerator = components.numerators.reduce((acc, val) => acc + val, 0);
+          const sumDenominator = components.denominators.reduce((acc, val) => acc + val, 0);
+          return sumDenominator !== 0 ? (sumNumerator / sumDenominator) * 100 : 0;
         }
-        return groupValues.length > 0 ? aggregateValues(groupValues, aggregationType) : 0;
+
+        // Special handling for average operator: calculate (sum of all field values) / numFields
+        // This gives the correct average of totals rather than average of individual per-row averages
+        if (calcOperator === 'average' && averageComponents[groupKey] && averageComponents[groupKey][xKey]) {
+          const components = averageComponents[groupKey][xKey];
+          const sumValues = components.values.reduce((acc, val) => acc + val, 0);
+          return components.numFields > 0 ? sumValues / components.numFields : 0;
+        }
+
+        // For other ratio-based operators (ratio, formula), average the results
+        // For other operators (sum, difference), sum the results
+        let calcAggType = 'sum';
+        if (calcOperator === 'ratio' || calcOperator === 'formula') {
+          calcAggType = 'avg';
+        }
+        return groupValues.length > 0 ? aggregateValues(groupValues, calcAggType) : 0;
       } else {
-        // For regular values, use the selected aggregationType
-        return groupValues.length > 0 ? aggregateValues(groupValues, aggregationType) : 0;
+        // For regular series, use the series' aggregationType
+        const seriesAggType = seriesAggregationMap.get(groupKey) || 'count';
+        return groupValues.length > 0 ? aggregateValues(groupValues, seriesAggType) : 0;
       }
     });
 
-    return {
+    // Get custom styles for this series if available
+    // Priority: series color > calculated value color > default
+    const color = seriesColorMap.get(groupKey) || calcValueColorMap.get(groupKey) || defaultColors[index];
+
+    // Get line style - prefer series style, then calculated value style
+    const lineStyle = seriesLineStyleMap.get(groupKey) || calcValueLineStyleMap.get(groupKey);
+    // Get bar style - prefer series style, then calculated value style
+    const barStyle = seriesBarStyleMap.get(groupKey) || calcValueBarStyleMap.get(groupKey);
+    // Get stroke width - prefer series style, then calculated value style
+    const strokeWidth = seriesStrokeWidthMap.get(groupKey) ?? calcValueStrokeWidthMap.get(groupKey);
+    // Get chart type - prefer series type, then calculated value type (for mixed bar/line charts)
+    const datasetChartType = seriesChartTypeMap.get(groupKey) || calcValueChartTypeMap.get(groupKey);
+
+    const dataset = {
       label: groupKey,
       data: values,
-      backgroundColor: colors[index],
-      borderColor: colors[index].replace('0.8', '1'),
+      backgroundColor: color,
+      borderColor: color.replace('0.8', '1'),
       borderWidth: 1,
-      yAxisID: calcValueSecondaryYAxisMap.get(groupKey) ? 'y1' : 'y',
+      yAxisID: (seriesSecondaryYAxisMap.get(groupKey) || calcValueSecondaryYAxisMap.get(groupKey)) ? 'y1' : 'y',
+      type: datasetChartType || undefined,
+      lineStyle: lineStyle || undefined,
+      barStyle: barStyle || undefined,
+      strokeWidth: strokeWidth ?? undefined,
     };
+
+    return dataset;
   });
+
+  // Calculate date range info for tick formatting
+  let dateAxisInfo = null;
+  if (isDateAxis && !hasNonDateAxisValue && sortedXKeys.length > 0) {
+    const firstTimestamp = sortedXKeys[0];
+    const lastTimestamp = sortedXKeys[sortedXKeys.length - 1];
+    const timespanMs = lastTimestamp - firstTimestamp;
+    const timespanHours = timespanMs / (1000 * 60 * 60);
+    dateAxisInfo = {
+      isDateAxis: true,
+      timespanHours,
+      rawXValues: sortedXKeys, // timestamps
+    };
+  }
 
   return {
     labels: sortedXLabels,
     datasets,
+    dateAxisInfo,
   };
 }
 
@@ -757,11 +1180,19 @@ export function validateGraphConfig(config, columns) {
     return { isValid: false, error: 'No configuration provided' };
   }
 
-  const { chartType, xColumn, yColumn, valueColumn } = config;
+  const { chartType, xColumn, yColumn, series, calculatedValues } = config;
 
   if (!chartType) {
     return { isValid: false, error: 'Chart type is required' };
   }
+
+  // Check for series - a series with at least one field
+  const hasSeries = Array.isArray(series) && series.length > 0 && series.some(s => {
+    const fields = s.fields || [];
+    return fields.length > 0;
+  });
+  const hasCalculatedValues = calculatedValues && Array.isArray(calculatedValues) && calculatedValues.length > 0;
+  const hasValuesToDisplay = hasSeries || hasCalculatedValues;
 
   // Check required columns based on chart type
   switch (chartType) {
@@ -776,14 +1207,18 @@ export function validateGraphConfig(config, columns) {
 
     case 'pie':
     case 'doughnut': {
-      if (!valueColumn || (Array.isArray(valueColumn) && valueColumn.length === 0)) {
-        return { isValid: false, error: 'Pie charts require at least one value column' };
+      if (!hasValuesToDisplay) {
+        return { isValid: false, error: 'Pie charts require at least one series or calculated value' };
       }
-      // Validate all value columns exist
-      const pieValueCols = Array.isArray(valueColumn) ? valueColumn : [valueColumn];
-      for (const col of pieValueCols) {
-        if (!columns || !columns[col]) {
-          return { isValid: false, error: `Value column '${col}' does not exist` };
+      // Validate all series fields exist
+      if (hasSeries && columns) {
+        for (const s of series) {
+          const fields = s.fields || [];
+          for (const col of fields) {
+            if (!columns[col]) {
+              return { isValid: false, error: `Field '${col}' does not exist` };
+            }
+          }
         }
       }
       break;
@@ -792,17 +1227,21 @@ export function validateGraphConfig(config, columns) {
     case 'bar':
     case 'line':
     case 'radar': {
-      if (!xColumn || !valueColumn || (Array.isArray(valueColumn) && valueColumn.length === 0)) {
-        return { isValid: false, error: 'Bar/line charts require both X axis and at least one value column' };
+      if (!xColumn || !hasValuesToDisplay) {
+        return { isValid: false, error: 'Bar/line charts require both X axis and at least one series or calculated value' };
       }
       if (!columns || !columns[xColumn]) {
         return { isValid: false, error: 'X column does not exist' };
       }
-      // Validate all value columns exist
-      const barValueCols = Array.isArray(valueColumn) ? valueColumn : [valueColumn];
-      for (const col of barValueCols) {
-        if (!columns || !columns[col]) {
-          return { isValid: false, error: `Value column '${col}' does not exist` };
+      // Validate all series fields exist
+      if (hasSeries && columns) {
+        for (const s of series) {
+          const fields = s.fields || [];
+          for (const col of fields) {
+            if (!columns[col]) {
+              return { isValid: false, error: `Field '${col}' does not exist` };
+            }
+          }
         }
       }
       break;

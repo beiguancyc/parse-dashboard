@@ -1,3 +1,102 @@
+# [9.0.0](https://github.com/parse-community/parse-dashboard/compare/8.5.0...9.0.0) (2026-02-19)
+
+
+### Bug Fixes
+
+* Cloud Config parameter modal overlays non-printable character info box ([#3221](https://github.com/parse-community/parse-dashboard/issues/3221)) ([983253e](https://github.com/parse-community/parse-dashboard/commit/983253e85e5fe7aefeb34051bebee1ddd2fa4274))
+* Incomplete authentication on AI Agent endpoint ([GHSA-qwc3-h9mg-4582](https://github.com/parse-community/parse-dashboard/security/advisories/GHSA-qwc3-h9mg-4582)) ([#3224](https://github.com/parse-community/parse-dashboard/issues/3224)) ([f92a9ef](https://github.com/parse-community/parse-dashboard/commit/f92a9ef5246d57e51696bd881a15f3b133b2bb50))
+* Non-printable character box missing when editing Cloud Config parameter ([#3218](https://github.com/parse-community/parse-dashboard/issues/3218)) ([719ac09](https://github.com/parse-community/parse-dashboard/commit/719ac0948344c8956ccc9bbf8a0242131fc01962))
+
+### Features
+
+* Add option to block saving Cloud Config parameter if validation fails ([#3225](https://github.com/parse-community/parse-dashboard/issues/3225)) ([41691aa](https://github.com/parse-community/parse-dashboard/commit/41691aafbd516a3e63cf30a1739e30985e7ca4ea))
+* Add Regex string validation when editing Cloud Config parameter ([#3222](https://github.com/parse-community/parse-dashboard/issues/3222)) ([067b9d1](https://github.com/parse-community/parse-dashboard/commit/067b9d114aa0f6de24940fa6d4a2b3e667c8b3b5))
+* Add support for checkbox, toggle, text input elements to script form ([#3219](https://github.com/parse-community/parse-dashboard/issues/3219)) ([b9366bc](https://github.com/parse-community/parse-dashboard/commit/b9366bc9cf4b24650f991b0883c1ba1f2897969d))
+* Add support for reversing info panel auto-scroll direction while holding Command+Option keys ([#3220](https://github.com/parse-community/parse-dashboard/issues/3220)) ([7ebd121](https://github.com/parse-community/parse-dashboard/commit/7ebd1210b47f483182da80b3f2fb31b1c1b4bf16))
+* Remove Node 18 support ([#3212](https://github.com/parse-community/parse-dashboard/issues/3212)) ([a5c1bb2](https://github.com/parse-community/parse-dashboard/commit/a5c1bb2d597df1e8670aa5f61640fa7961812530))
+
+
+### BREAKING CHANGES
+
+* Removes support for Node 18. ([a5c1bb2](a5c1bb2))
+
+# [8.5.0](https://github.com/parse-community/parse-dashboard/compare/8.4.0...8.5.0) (2026-02-12)
+
+
+### Bug Fixes
+
+* Auto-formatting not applied when Cloud Config parameter value is outdated and re-fetched from server ([#3182](https://github.com/parse-community/parse-dashboard/issues/3182)) ([84eab36](https://github.com/parse-community/parse-dashboard/commit/84eab36680c6a3ce854276127764e4668c83b9b1))
+* Clicking reload button in info panel may display fetched data in incorrect panel ([#3189](https://github.com/parse-community/parse-dashboard/issues/3189)) ([b348ef5](https://github.com/parse-community/parse-dashboard/commit/b348ef5dad5731c66e50f3b4c67ff0afd3884a86))
+* Role linking in ACL fails with type error ([#3095](https://github.com/parse-community/parse-dashboard/issues/3095)) ([2070d29](https://github.com/parse-community/parse-dashboard/commit/2070d2937de4440920494ebef8c63ea96bcbac37))
+* Security migration from csurf to csrf-sync ([#3188](https://github.com/parse-community/parse-dashboard/issues/3188)) ([a95d8a3](https://github.com/parse-community/parse-dashboard/commit/a95d8a32a2b45bec98f9e8b8e936c9d34073792b))
+* View configuration dialog looses focus while typing and lacks syntax highlighting ([#3183](https://github.com/parse-community/parse-dashboard/issues/3183)) ([715fe8d](https://github.com/parse-community/parse-dashboard/commit/715fe8d60cfe1dcb82012d290e8b95c4a5fc1446))
+
+### Features
+
+* Add keyboard shortcut to scroll info panels to top ([#3199](https://github.com/parse-community/parse-dashboard/issues/3199)) ([7535626](https://github.com/parse-community/parse-dashboard/commit/7535626ff28d73eb9196b7f5653cb5a078b33213))
+* Add option to reload all or only selected rows after invoking script ([#3200](https://github.com/parse-community/parse-dashboard/issues/3200)) ([173b953](https://github.com/parse-community/parse-dashboard/commit/173b95378ddd36a4ac865a698efdfadd29516ea0))
+* Add reload button to info panel on long loading time ([#3184](https://github.com/parse-community/parse-dashboard/issues/3184)) ([3712d96](https://github.com/parse-community/parse-dashboard/commit/3712d96f2992c9134585f6d45d2e2e04e6692ec1))
+* Add support for script execution invoking dashboard form for user input ([#3201](https://github.com/parse-community/parse-dashboard/issues/3201)) ([159f99d](https://github.com/parse-community/parse-dashboard/commit/159f99dfa56fcdb0f7ec0df7c3bfb89bfdbc0af3))
+
+# [8.4.0](https://github.com/parse-community/parse-dashboard/compare/8.3.0...8.4.0) (2026-02-05)
+
+
+### Features
+
+* Add syntax highlighting, formatting, auto-indentation for Cloud Config parameter values of type Object and Array ([#3176](https://github.com/parse-community/parse-dashboard/issues/3176)) ([538e8b3](https://github.com/parse-community/parse-dashboard/commit/538e8b370dd9b4d39c908487357e609bdbe8353a))
+
+# [8.3.0](https://github.com/parse-community/parse-dashboard/compare/8.2.0...8.3.0) (2026-02-05)
+
+
+### Bug Fixes
+
+* Canvas graph element does not apply data filter option ([#3128](https://github.com/parse-community/parse-dashboard/issues/3128)) ([00ff1aa](https://github.com/parse-community/parse-dashboard/commit/00ff1aafa9cc59d277520a4c97a28131cf5c5ae7))
+* Canvas is not expandable or scrollable beyond current view size ([#3140](https://github.com/parse-community/parse-dashboard/issues/3140)) ([cb73122](https://github.com/parse-community/parse-dashboard/commit/cb731220b43fcf68e510063331dd30e7e446daec))
+* Cloud Config parameter modal cannot scroll when content scales beyond visible area ([#3124](https://github.com/parse-community/parse-dashboard/issues/3124)) ([bb6de31](https://github.com/parse-community/parse-dashboard/commit/bb6de31f4e1f5543e7e12b20bc5a4ea801db67f7))
+* Context menu of header cell in info panel does not group related records by class name ([#3122](https://github.com/parse-community/parse-dashboard/issues/3122)) ([230c1e2](https://github.com/parse-community/parse-dashboard/commit/230c1e29bf612f61516f63f39829053b6293a2a2))
+* Context menu sub-menu in data browser vertically misaligned when scrolling in parent menu ([#3120](https://github.com/parse-community/parse-dashboard/issues/3120)) ([2acaa27](https://github.com/parse-community/parse-dashboard/commit/2acaa270c9e0c768d3e34960bae1627ed038afad))
+* Dashboard crashes when adding Parse Pointer JSON to array field in data browser ([#3125](https://github.com/parse-community/parse-dashboard/issues/3125)) ([70bf081](https://github.com/parse-community/parse-dashboard/commit/70bf081788fc245a7e476ea4c92f0d4f6501d014))
+* Data browser graph requires value field even when calculated value is defined ([#3127](https://github.com/parse-community/parse-dashboard/issues/3127)) ([53e4f2b](https://github.com/parse-community/parse-dashboard/commit/53e4f2be61eb374d658e839afa67ee91a7761a54))
+* Graph in canvas ignores date filter constraints ([#3137](https://github.com/parse-community/parse-dashboard/issues/3137)) ([6d8b8e6](https://github.com/parse-community/parse-dashboard/commit/6d8b8e65d9ebbbba202b6d60d988aa7a02a77e99))
+* Group-by not using custom aggregation type for single-series graph ([#3159](https://github.com/parse-community/parse-dashboard/issues/3159)) ([b8e8891](https://github.com/parse-community/parse-dashboard/commit/b8e8891791423b87112233e6fe8b5aa92cbded6e))
+* Incorrect percentage and average calculation for calculated values in graphs ([#3152](https://github.com/parse-community/parse-dashboard/issues/3152)) ([14b4d48](https://github.com/parse-community/parse-dashboard/commit/14b4d485ed2a8d9a52f35af6e583997105db115d))
+* Info panel auto-scrolling not pausing during UI interaction like text selection or context menu display ([#3165](https://github.com/parse-community/parse-dashboard/issues/3165)) ([bfe4e8a](https://github.com/parse-community/parse-dashboard/commit/bfe4e8a8c85f18b9d75107529976be2951a75a05))
+* Name of calculated value in data browser graph allows leading and trailing spaces ([#3132](https://github.com/parse-community/parse-dashboard/issues/3132)) ([9493b18](https://github.com/parse-community/parse-dashboard/commit/9493b180e316ffbbf2a8444a47fc17818bf04371))
+* Optimize data browser cell context menu grouping and readability ([#3141](https://github.com/parse-community/parse-dashboard/issues/3141)) ([5c711e1](https://github.com/parse-community/parse-dashboard/commit/5c711e141bb38f9a7c5faafde39c2c75cbbbc295))
+* Security upgrade react-router and react-router-dom ([#3107](https://github.com/parse-community/parse-dashboard/issues/3107)) ([b76b9d1](https://github.com/parse-community/parse-dashboard/commit/b76b9d17028467cf3b3e4ca7e320e4e7b6e8c619))
+* Setting a keyboard shortcut to its default value creates an unnecessary dashboard config storage entry ([#3173](https://github.com/parse-community/parse-dashboard/issues/3173)) ([4949053](https://github.com/parse-community/parse-dashboard/commit/49490538dde28ef91963324429877764e44d3f1a))
+
+### Features
+
+* Add auto-scrolling for info panels ([#3149](https://github.com/parse-community/parse-dashboard/issues/3149)) ([3cd8197](https://github.com/parse-community/parse-dashboard/commit/3cd8197315702fdc5d31f834a4e7426fcfbfc83c))
+* Add canvas tree to sidebar instead of loading dialog and favorite functionality ([#3146](https://github.com/parse-community/parse-dashboard/issues/3146)) ([e58dc82](https://github.com/parse-community/parse-dashboard/commit/e58dc8232bb4b11883c81dc1a88b91852c875b0a))
+* Add cloning of element in canvas ([#3144](https://github.com/parse-community/parse-dashboard/issues/3144)) ([dec06ad](https://github.com/parse-community/parse-dashboard/commit/dec06adf77bcfad6148da02f20243f3b480cca15))
+* Add context menu in data browser to add cell content or selected text to Cloud Config parameter ([#3123](https://github.com/parse-community/parse-dashboard/issues/3123)) ([9bc5197](https://github.com/parse-community/parse-dashboard/commit/9bc519724fec9774e7e17f8815a73d0ddb707155))
+* Add context menu in data browser to get related records from String and Number fields ([#3118](https://github.com/parse-community/parse-dashboard/issues/3118)) ([824bebd](https://github.com/parse-community/parse-dashboard/commit/824bebd8d2d4207f133fb36dd8f8af9c9051e0f3))
+* Add context menu item to get related records for selected text in data browser cell ([#3142](https://github.com/parse-community/parse-dashboard/issues/3142)) ([33d3595](https://github.com/parse-community/parse-dashboard/commit/33d359590ca134aaeef480f5b2b895ecb04df71a))
+* Add custom dashboard canvas with graphs and data tables ([#3126](https://github.com/parse-community/parse-dashboard/issues/3126)) ([d45c27b](https://github.com/parse-community/parse-dashboard/commit/d45c27bf0896455713aeebaeb776ea3074af6253))
+* Add customizable styles for line and bar series in data browser graph ([#3131](https://github.com/parse-community/parse-dashboard/issues/3131)) ([501dd4b](https://github.com/parse-community/parse-dashboard/commit/501dd4b515c2ffdb3a411a30c8e92ebd655dd015))
+* Add customizable Y-axis titles for data browser graphs ([#3130](https://github.com/parse-community/parse-dashboard/issues/3130)) ([2946e64](https://github.com/parse-community/parse-dashboard/commit/2946e64e048aba119394e7c6513aab6891c8afe7))
+* Add dialog to execute Cloud Job with parameters ([#3158](https://github.com/parse-community/parse-dashboard/issues/3158)) ([da419e0](https://github.com/parse-community/parse-dashboard/commit/da419e023f691c43abf97d725ef821ff9ee07726))
+* Add expanded view for canvas elements graph, table, view ([#3156](https://github.com/parse-community/parse-dashboard/issues/3156)) ([0ffd767](https://github.com/parse-community/parse-dashboard/commit/0ffd767a06b0cd005a102e00299d5cc96cb043c6))
+* Add field `objectId` to get related records context menu in data browser ([#3161](https://github.com/parse-community/parse-dashboard/issues/3161)) ([2847ccf](https://github.com/parse-community/parse-dashboard/commit/2847ccf3adc4a7aa902e8a5b70ad61d9a2379877))
+* Add formula-based calculated value to data browser graph ([#3129](https://github.com/parse-community/parse-dashboard/issues/3129)) ([7c5d1b3](https://github.com/parse-community/parse-dashboard/commit/7c5d1b31f4475bf65ca6c82e879d8162945b4d17))
+* Add keyboard shortcut for executing script on selected rows in data browser ([#3171](https://github.com/parse-community/parse-dashboard/issues/3171)) ([75389ad](https://github.com/parse-community/parse-dashboard/commit/75389ad78e30fb38ea99bdce7550b59a7142c5f1))
+* Add more customization options for graphs in canvas ([#3134](https://github.com/parse-community/parse-dashboard/issues/3134)) ([ddbd666](https://github.com/parse-community/parse-dashboard/commit/ddbd66694de45b3f45e674b3276a43eb1901874b))
+* Add non-alphanumeric character detection in Cloud Config parameters ([#3143](https://github.com/parse-community/parse-dashboard/issues/3143)) ([1594ec8](https://github.com/parse-community/parse-dashboard/commit/1594ec8b53fec5d6a9b6f0643105c6141bb8a67c))
+* Add quick-remove button to array parameter in Cloud Config ([#3121](https://github.com/parse-community/parse-dashboard/issues/3121)) ([b632074](https://github.com/parse-community/parse-dashboard/commit/b63207442a0c6e4d6890d77eadb397de3381b83b))
+* Add support for server side storage of Cloud Config parameter history ([#3169](https://github.com/parse-community/parse-dashboard/issues/3169)) ([964e540](https://github.com/parse-community/parse-dashboard/commit/964e540d9ca9b790a6317310d044d82d15ef50d9))
+* Allow adding View elements to canvas ([#3133](https://github.com/parse-community/parse-dashboard/issues/3133)) ([2f2ae9a](https://github.com/parse-community/parse-dashboard/commit/2f2ae9a86aaadec276f52c5f62f633c31bd57cef))
+* Allow to favorite canvas for quick-access via sidebar menu ([#3135](https://github.com/parse-community/parse-dashboard/issues/3135)) ([1e3a3c7](https://github.com/parse-community/parse-dashboard/commit/1e3a3c7849cf5f980f3af23398cf35ab785d013f))
+* Allow to pause auto-scroll of info panel by holding the Option key ([#3160](https://github.com/parse-community/parse-dashboard/issues/3160)) ([db38f14](https://github.com/parse-community/parse-dashboard/commit/db38f1436c39e1297545253ad0e6ccaab7fdbb04))
+* Allow to use ESC key to cancel, Cmd + Enter key to submit, Tab key to navigate a modal dialog ([#3172](https://github.com/parse-community/parse-dashboard/issues/3172)) ([debdc09](https://github.com/parse-community/parse-dashboard/commit/debdc098c1b9f78358a35f043b7885528ecdb519))
+* Detect and warn about unprintable characters in Cloud Config parameter values ([#3119](https://github.com/parse-community/parse-dashboard/issues/3119)) ([26c909c](https://github.com/parse-community/parse-dashboard/commit/26c909c02949f7aadecdc4393893a484d49062e3))
+* Improve usability and layout of canvas and elements ([#3148](https://github.com/parse-community/parse-dashboard/issues/3148)) ([cd654dc](https://github.com/parse-community/parse-dashboard/commit/cd654dcc1c424a5b385a666753379f7ab6cbdc04))
+* Optimize appearance of graph tick labels on x-axis for date values ([#3147](https://github.com/parse-community/parse-dashboard/issues/3147)) ([a9edcaf](https://github.com/parse-community/parse-dashboard/commit/a9edcafa5a2af60c89914adf3df4465e266a4ce6))
+* Optimize canvas menu organization ([#3145](https://github.com/parse-community/parse-dashboard/issues/3145)) ([1558826](https://github.com/parse-community/parse-dashboard/commit/1558826115dd266e46c79951a8a6b748c65c431f))
+* Replace graph fields with graph series for more customization ([#3157](https://github.com/parse-community/parse-dashboard/issues/3157)) ([51feba4](https://github.com/parse-community/parse-dashboard/commit/51feba4901fbba095ef7b4fb106eac711e6b7d97))
+* Various improvements for auto-scrolling info panel ([#3151](https://github.com/parse-community/parse-dashboard/issues/3151)) ([423d83a](https://github.com/parse-community/parse-dashboard/commit/423d83a662007e23dd4a46a11a9baff27c755125))
+
 # [8.2.0](https://github.com/parse-community/parse-dashboard/compare/8.1.0...8.2.0) (2026-01-15)
 
 

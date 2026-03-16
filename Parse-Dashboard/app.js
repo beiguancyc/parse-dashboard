@@ -2,7 +2,6 @@
 
 const express = require('express');
 const path = require('path');
-const csrf = require('csurf');
 const Authentication = require('./Authentication.js');
 const fs = require('fs');
 const ConfigKeyCache = require('./configKeyCache.js');
@@ -159,7 +158,8 @@ module.exports = function(config, options) {
               }
 
               if (typeof app.masterKey === 'function') {
-                app.masterKey = await ConfigKeyCache.get(app.appId, 'masterKey', app.masterKeyTtl, app.masterKey);
+                const cacheKey = matchingAccess.readOnly ? 'readOnlyMasterKey' : 'masterKey';
+                app.masterKey = await ConfigKeyCache.get(app.appId, cacheKey, app.masterKeyTtl, app.masterKey);
               }
 
               return app;
@@ -198,10 +198,12 @@ module.exports = function(config, options) {
     // In-memory conversation storage (consider using Redis in future)
     const conversations = new Map();
 
-    // Agent API endpoint for handling AI requests - scoped to specific app
-    app.post('/apps/:appId/agent', async (req, res) => {
+    // Agent API endpoint handler
+    async function agentHandler(req, res) {
       try {
-        const { message, modelName, conversationId, permissions } = req.body;
+        const authentication = req.user;
+
+        const { message, modelName, conversationId, permissions } = req.body || {};
         const { appId } = req.params;
 
         if (!message || typeof message !== 'string' || message.trim() === '') {
@@ -222,9 +224,38 @@ module.exports = function(config, options) {
         }
 
         // Find the app in the configuration
-        const app = config.apps.find(app => (app.appNameForURL || app.appName) === appId);
-        if (!app) {
+        const appConfig = config.apps.find(a => (a.appNameForURL || a.appName) === appId);
+        if (!appConfig) {
           return res.status(404).json({ error: `App "${appId}" not found` });
+        }
+
+        // Cross-app access control — restrict to apps the authenticated user has access to
+        const appsUserHasAccess = authentication && authentication.appsUserHasAccessTo;
+        let isPerAppReadOnly = false;
+        if (appsUserHasAccess) {
+          const matchingAccess = appsUserHasAccess.find(access => access.appId === appConfig.appId);
+          if (!matchingAccess) {
+            return res.status(403).json({ error: 'Forbidden: you do not have access to this app' });
+          }
+          isPerAppReadOnly = !!matchingAccess.readOnly;
+        }
+
+        // Determine if the user is read-only (globally or per-app)
+        const isReadOnly = (authentication && authentication.isReadOnly) || isPerAppReadOnly;
+
+        // Build the app context — always shallow copy to avoid mutating the shared config
+        const appContext = { ...appConfig };
+        if (isReadOnly) {
+          if (!appConfig.readOnlyMasterKey) {
+            return res.status(400).json({ error: 'You need to provide a readOnlyMasterKey to use read-only features.' });
+          }
+          appContext.masterKey = appConfig.readOnlyMasterKey;
+        }
+
+        // Resolve function-typed masterKey (supports dynamic key rotation via ConfigKeyCache)
+        if (typeof appContext.masterKey === 'function') {
+          const cacheKey = isReadOnly ? 'readOnlyMasterKey' : 'masterKey';
+          appContext.masterKey = await ConfigKeyCache.get(appContext.appId, cacheKey, appContext.masterKeyTtl, appContext.masterKey);
         }
 
         // Find the requested model
@@ -259,8 +290,12 @@ module.exports = function(config, options) {
         // Array to track database operations for this request
         const operationLog = [];
 
+        // Read-only users: override client permissions to deny all write operations,
+        // preventing privilege escalation via self-authorized permissions in the request body
+        const effectivePermissions = isReadOnly ? {} : (permissions || {});
+
         // Make request to OpenAI API with app context and conversation history
-        const response = await makeOpenAIRequest(message, model, apiKey, app, conversationHistory, operationLog, permissions);
+        const response = await makeOpenAIRequest(message, model, apiKey, appContext, conversationHistory, operationLog, effectivePermissions);
 
         // Update conversation history with user message and AI response
         conversationHistory.push(
@@ -281,7 +316,7 @@ module.exports = function(config, options) {
           conversationId: finalConversationId,
           debug: {
             timestamp: new Date().toISOString(),
-            appId: app.appId,
+            appId: appContext.appId,
             modelUsed: model,
             operations: operationLog
           }
@@ -292,7 +327,19 @@ module.exports = function(config, options) {
         const errorMessage = error.message || 'Provider error';
         res.status(500).json({ error: `Error: ${errorMessage}` });
       }
-    });
+    }
+
+    // Agent API endpoint — middleware chain: auth check (401) → CSRF validation (403) → handler
+    app.post('/apps/:appId/agent',
+      (req, res, next) => {
+        if (users && (!req.user || !req.user.isAuthenticated)) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+        next();
+      },
+      Authentication.csrfProtection,
+      agentHandler
+    );
 
     /**
      * Database function tools for the AI agent
@@ -1065,7 +1112,7 @@ You have direct access to the Parse database through function calls, so you can 
       }
     }
 
-    app.get('/login', csrf(), function(req, res) {
+    app.get('/login', Authentication.csrfProtection, function(req, res) {
       let redirectURL = null;
       try {
         const url = new URL(req.url, 'http://localhost');
@@ -1116,7 +1163,7 @@ You have direct access to the Parse database through function calls, so you can 
     });
 
     // For every other request, go to index.html. Let client-side handle the rest.
-    app.get('/*', function(req, res) {
+    app.get('{*splat}', Authentication.csrfProtection, function(req, res) {
       if (users && (!req.user || !req.user.isAuthenticated)) {
         const redirect = req.url.replace('/login', '');
         if (redirect.length > 1) {
@@ -1140,6 +1187,7 @@ You have direct access to the Parse database through function calls, so you can 
         </head>
         <body>
           <div id="browser_mount"></div>
+          <script id="csrf" type="application/json">"${req.csrfToken()}"</script>
           <script src="${mountPath}bundles/dashboard.bundle.js"></script>
         </body>
       </html>

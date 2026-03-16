@@ -185,12 +185,17 @@ export default class BrowserRow extends Component {
               onEditSelectedRow={onEditSelectedRow}
               showNote={this.props.showNote}
               onRefresh={this.props.onRefresh}
+              onRefreshObjects={this.props.onRefreshObjects}
+              reloadDataTableAfterScript={this.props.reloadDataTableAfterScript}
+              onScriptModalResponse={this.props.onScriptModalResponse}
               scripts={this.props.scripts}
               handleCellClick={this.props.handleCellClick}
               selectedCells={this.props.selectedCells}
               setShowAggregatedData={this.props.setShowAggregatedData}
               setErrorAggregatedData={this.props.setErrorAggregatedData}
               firstSelectedCell={this.props.firstSelectedCell}
+              arrayConfigParams={this.props.arrayConfigParams}
+              onAddToArrayConfig={this.props.onAddToArrayConfig}
             />
           );
         })}

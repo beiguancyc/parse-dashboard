@@ -63,6 +63,33 @@ ChartJS.register(
   RadarController
 );
 
+/**
+ * Format a date tick label based on the time span using localized format
+ * @param {number} timestamp - The timestamp to format
+ * @param {number} timespanHours - The total time span in hours
+ * @returns {string} Formatted date string in user's locale
+ */
+function formatDateTickLabel(timestamp, timespanHours) {
+  const date = new Date(timestamp);
+  // Use browser's language setting for localization
+  const locale = navigator?.language || navigator?.languages?.[0];
+
+  if (timespanHours <= 24) {
+    // Show only time in localized 24-hour hh:mm format
+    return date.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false, // Use 24-hour format for compact display
+    });
+  } else {
+    // Show only date in localized format (respects user's locale for day/month order)
+    return date.toLocaleDateString(locale, {
+      day: '2-digit',
+      month: '2-digit',
+    });
+  }
+}
+
 const GraphPanel = ({
   graphConfig,
   data,
@@ -75,6 +102,9 @@ const GraphPanel = ({
   availableGraphs = [],
   onGraphSelect,
   onNewGraph,
+  disableAnimation = false,
+  hideHeader = false,
+  hideFooter = false,
 }) => {
   const chartRef = useRef(null);
   const containerRef = useRef(null);
@@ -127,11 +157,11 @@ const GraphPanel = ({
       chartType,
       xColumn,
       yColumn,
-      valueColumn,
+      series,
       groupByColumn,
-      aggregationType,
       maxDataPoints,
       calculatedValues,
+      strokeWidthOverride,
     } = graphConfig;
 
     // Limit data points for performance
@@ -145,14 +175,75 @@ const GraphPanel = ({
           break;
         case 'pie':
         case 'doughnut':
-          result = processPieData(limitedData, valueColumn, groupByColumn, aggregationType, calculatedValues);
+          result = processPieData(limitedData, series || [], groupByColumn, calculatedValues);
           break;
         case 'bar':
         case 'line':
         case 'radar':
-          result = processBarLineData(limitedData, xColumn, valueColumn, groupByColumn, aggregationType, calculatedValues);
+          result = processBarLineData(limitedData, xColumn, series || [], groupByColumn, calculatedValues);
           break;
       }
+
+      // Helper to compute the effective chart type for a dataset
+      // dataset.type overrides the global chart type
+      const getEffectiveType = (dataset) => {
+        return dataset.type || chartType;
+      };
+
+      // Apply line styles to datasets (convert lineStyle to Chart.js borderDash)
+      if (result && result.datasets) {
+        const lineStyleToBorderDash = {
+          solid: [],
+          dashed: [8, 4],
+          dotted: [2, 2],
+        };
+
+        result.datasets = result.datasets.map(dataset => {
+          const effectiveType = getEffectiveType(dataset);
+          if (effectiveType === 'line') {
+            // Line charts get custom or default stroke width and optional dash pattern
+            // strokeWidthOverride takes precedence over individual series strokeWidth
+            return {
+              ...dataset,
+              borderWidth: strokeWidthOverride || dataset.strokeWidth || 2,
+              ...(dataset.lineStyle && lineStyleToBorderDash[dataset.lineStyle]
+                ? { borderDash: lineStyleToBorderDash[dataset.lineStyle] }
+                : {}),
+            };
+          }
+          return dataset;
+        });
+      }
+
+      // Apply bar styles to datasets
+      if (result && result.datasets) {
+        result.datasets = result.datasets.map(dataset => {
+          const effectiveType = getEffectiveType(dataset);
+          if (effectiveType === 'bar' && dataset.barStyle) {
+            switch (dataset.barStyle) {
+              case 'outlined':
+                // Outlined: transparent fill with thick border
+                return {
+                  ...dataset,
+                  backgroundColor: 'transparent',
+                  borderWidth: 2,
+                };
+              case 'striped':
+                // Striped: lighter fill with dashed border to indicate pattern
+                return {
+                  ...dataset,
+                  backgroundColor: dataset.backgroundColor.replace('0.8', '0.3'),
+                  borderWidth: 2,
+                  borderDash: [4, 4],
+                };
+              default:
+                return dataset;
+            }
+          }
+          return dataset;
+        });
+      }
+
       return { processedData: result, validationError: null };
     } catch (err) {
       console.error('Error processing graph data:', err);
@@ -170,14 +261,18 @@ const GraphPanel = ({
       showGrid,
       showAxisLabels,
       isStacked,
+      yAxisTitlePrimary,
+      yAxisTitleSecondary,
     } = graphConfig;
 
     const baseOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      animation: disableAnimation ? false : undefined,
       plugins: {
         legend: {
           display: showLegend,
+          position: 'bottom',
         },
         title: {
           display: !!title,
@@ -237,10 +332,37 @@ const GraphPanel = ({
           return [joined];
         };
 
-        const primaryAxisTitle = splitLabel(primaryAxisSeries, 'Primary Axis');
-        const secondaryAxisTitle = splitLabel(secondaryAxisSeries, 'Secondary Axis');
+        // Use custom titles if provided, otherwise fall back to auto-generated
+        const primaryAxisTitle = yAxisTitlePrimary
+          ? [yAxisTitlePrimary]
+          : splitLabel(primaryAxisSeries, 'Primary Axis');
+        const secondaryAxisTitle = yAxisTitleSecondary
+          ? [yAxisTitleSecondary]
+          : splitLabel(secondaryAxisSeries, 'Secondary Axis');
 
         const hasSecondaryAxis = secondaryAxisSeries.length > 0;
+
+        // Get date axis info for tick formatting
+        const dateAxisInfo = processedData?.dateAxisInfo;
+
+        // Build x-axis tick configuration
+        const xAxisTicks = {
+          maxRotation: 0, // Keep labels horizontal
+          minRotation: 0,
+        };
+
+        // Add custom tick callback for date axes
+        if (dateAxisInfo?.isDateAxis && dateAxisInfo.rawXValues) {
+          xAxisTicks.callback = function(value) {
+            // Use 'value' (data index) not 'index' (rendered tick position)
+            // This ensures correct lookup when Chart.js auto-skips ticks
+            const timestamp = dateAxisInfo.rawXValues[value];
+            if (timestamp !== undefined) {
+              return formatDateTickLabel(timestamp, dateAxisInfo.timespanHours);
+            }
+            return this.getLabelForValue(value);
+          };
+        }
 
         return {
           ...baseOptions,
@@ -251,6 +373,7 @@ const GraphPanel = ({
               grid: {
                 display: showGrid,
               },
+              ticks: xAxisTicks,
             },
             y: {
               display: true,
@@ -306,7 +429,7 @@ const GraphPanel = ({
             ...baseOptions.plugins,
             legend: {
               display: showLegend,
-              position: 'right',
+              position: 'bottom',
             },
           },
         };
@@ -325,6 +448,17 @@ const GraphPanel = ({
               display: true,
               grid: {
                 display: showGrid,
+              },
+              title: {
+                display: showAxisLabels !== false && !!yAxisTitlePrimary,
+                text: yAxisTitlePrimary || '',
+                font: {
+                  size: 12,
+                },
+                padding: {
+                  top: 10,
+                  bottom: 10,
+                },
               },
             },
           },
@@ -351,7 +485,7 @@ const GraphPanel = ({
       default:
         return baseOptions;
     }
-  }, [graphConfig, processedData, containerHeight]);
+  }, [graphConfig, processedData, containerHeight, disableAnimation]);
 
   const renderChart = () => {
     if (validationError) {
@@ -465,82 +599,84 @@ const GraphPanel = ({
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>{currentGraphTitle}</h2>
-        <div className={styles.headerButtons}>
-          {showDropdown && (
-            <div className={styles.dropdown} ref={dropdownRef}>
-              <button
-                className={styles.dropdownTrigger}
-                onClick={() => setShowGraphDropdown(!showGraphDropdown)}
-                aria-label="Select graph"
-                title="Select graph"
-              >
-                <Icon name="down-solid" width={14} height={14} fill="#ffffff" />
-              </button>
-              {showGraphDropdown && (
-                <div className={styles.dropdownMenu}>
-                  {availableGraphs.map((graph) => (
+      {!hideHeader && (
+        <div className={styles.header}>
+          <h2 className={styles.title}>{currentGraphTitle}</h2>
+          <div className={styles.headerButtons}>
+            {showDropdown && (
+              <div className={styles.dropdown} ref={dropdownRef}>
+                <button
+                  className={styles.dropdownTrigger}
+                  onClick={() => setShowGraphDropdown(!showGraphDropdown)}
+                  aria-label="Select graph"
+                  title="Select graph"
+                >
+                  <Icon name="down-solid" width={14} height={14} fill="#ffffff" />
+                </button>
+                {showGraphDropdown && (
+                  <div className={styles.dropdownMenu}>
+                    {availableGraphs.map((graph) => (
+                      <button
+                        key={graph.id}
+                        className={`${styles.dropdownItem} ${graph.id === graphConfig?.id ? styles.dropdownItemActive : ''}`}
+                        onClick={() => handleGraphSelect(graph)}
+                      >
+                        <span className={styles.dropdownItemTitle}>
+                          {graph.title || 'Graph'}
+                        </span>
+                        <span className={styles.dropdownItemType}>
+                          {graph.chartType}
+                        </span>
+                      </button>
+                    ))}
+                    <div className={styles.dropdownSeparator} />
                     <button
-                      key={graph.id}
-                      className={`${styles.dropdownItem} ${graph.id === graphConfig?.id ? styles.dropdownItemActive : ''}`}
-                      onClick={() => handleGraphSelect(graph)}
+                      className={styles.dropdownItem}
+                      onClick={handleNewGraph}
                     >
-                      <span className={styles.dropdownItemTitle}>
-                        {graph.title || 'Graph'}
-                      </span>
-                      <span className={styles.dropdownItemType}>
-                        {graph.chartType}
-                      </span>
+                      <Icon name="plus" width={12} height={12} />
+                      <span>Create Graph</span>
                     </button>
-                  ))}
-                  <div className={styles.dropdownSeparator} />
-                  <button
-                    className={styles.dropdownItem}
-                    onClick={handleNewGraph}
-                  >
-                    <Icon name="plus" width={12} height={12} />
-                    <span>Create Graph</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          {hasActiveGraph && onEdit && (
-            <button
-              type="button"
-              onClick={() => onEdit()}
-              className={styles.editButton}
-              aria-label="Edit graph configuration"
-              title="Edit graph"
-            >
-              <Icon name="edit-solid" width={14} height={14} fill="#ffffff" />
-            </button>
-          )}
-          {hasActiveGraph && onRefresh && (
-            <button
-              type="button"
-              onClick={() => onRefresh()}
-              className={styles.refreshButton}
-              aria-label="Refresh graph data"
-              title="Refresh graph"
-            >
-              <Icon name="refresh-solid" width={14} height={14} fill="#ffffff" />
-            </button>
-          )}
-          {onClose && (
-            <button
-              type="button"
-              onClick={() => onClose()}
-              className={styles.closeButton}
-              aria-label="Close graph panel"
-              title="Close graph"
-            >
-              <Icon name="x-solid" width={14} height={14} fill="#ffffff" />
-            </button>
-          )}
+                  </div>
+                )}
+              </div>
+            )}
+            {hasActiveGraph && onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit()}
+                className={styles.editButton}
+                aria-label="Edit graph configuration"
+                title="Edit graph"
+              >
+                <Icon name="edit-solid" width={14} height={14} fill="#ffffff" />
+              </button>
+            )}
+            {hasActiveGraph && onRefresh && (
+              <button
+                type="button"
+                onClick={() => onRefresh()}
+                className={styles.refreshButton}
+                aria-label="Refresh graph data"
+                title="Refresh graph"
+              >
+                <Icon name="refresh-solid" width={14} height={14} fill="#ffffff" />
+              </button>
+            )}
+            {onClose && (
+              <button
+                type="button"
+                onClick={() => onClose()}
+                className={styles.closeButton}
+                aria-label="Close graph panel"
+                title="Close graph"
+              >
+                <Icon name="x-solid" width={14} height={14} fill="#ffffff" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.chartContainer} ref={containerRef}>
         {isLoading ? (
@@ -555,7 +691,7 @@ const GraphPanel = ({
         )}
       </div>
 
-      {graphConfig && (
+      {graphConfig && !hideFooter && (
         <div className={styles.configInfo}>
           <small>
             Data points: {data?.length || 0}

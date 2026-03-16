@@ -198,6 +198,9 @@ export default class BrowserTable extends React.Component {
                     markRequiredFieldRow={this.props.markRequiredFieldRow}
                     showNote={this.props.showNote}
                     onRefresh={this.props.onRefresh}
+                    onRefreshObjects={this.props.onRefreshObjects}
+                    reloadDataTableAfterScript={this.props.reloadDataTableAfterScript}
+                    onScriptModalResponse={this.props.onScriptModalResponse}
                     scripts={this.context.scripts}
                     selectedCells={this.props.selectedCells}
                     handleCellClick={this.props.handleCellClick}
@@ -208,6 +211,8 @@ export default class BrowserTable extends React.Component {
                     setShowAggregatedData={this.props.setShowAggregatedData}
                     setErrorAggregatedData={this.props.setErrorAggregatedData}
                     firstSelectedCell={this.props.firstSelectedCell}
+                    arrayConfigParams={this.props.arrayConfigParams}
+                    onAddToArrayConfig={this.props.onAddToArrayConfig}
                   />
                   <Button
                     value="Clone"
@@ -294,6 +299,8 @@ export default class BrowserTable extends React.Component {
               setShowAggregatedData={this.props.setShowAggregatedData}
               setErrorAggregatedData={this.props.setErrorAggregatedData}
               firstSelectedCell={this.props.firstSelectedCell}
+              arrayConfigParams={this.props.arrayConfigParams}
+              onAddToArrayConfig={this.props.onAddToArrayConfig}
             />
             <Button
               value="Add"
@@ -379,6 +386,9 @@ export default class BrowserTable extends React.Component {
             onEditSelectedRow={this.props.onEditSelectedRow}
             showNote={this.props.showNote}
             onRefresh={this.props.onRefresh}
+            onRefreshObjects={this.props.onRefreshObjects}
+            reloadDataTableAfterScript={this.props.reloadDataTableAfterScript}
+            onScriptModalResponse={this.props.onScriptModalResponse}
             scripts={this.context.scripts}
             selectedCells={this.props.selectedCells}
             handleCellClick={this.props.handleCellClick}
@@ -389,6 +399,8 @@ export default class BrowserTable extends React.Component {
             setShowAggregatedData={this.props.setShowAggregatedData}
             setErrorAggregatedData={this.props.setErrorAggregatedData}
             firstSelectedCell={this.props.firstSelectedCell}
+            arrayConfigParams={this.props.arrayConfigParams}
+            onAddToArrayConfig={this.props.onAddToArrayConfig}
           />
         );
       }
@@ -484,6 +496,10 @@ export default class BrowserTable extends React.Component {
                   this.props.setEditing(false);
                 }}
                 onCancel={() => this.props.setEditing(false)}
+                setContextMenu={this.props.setContextMenu}
+                arrayConfigParams={this.props.arrayConfigParams}
+                onAddToArrayConfig={this.props.onAddToArrayConfig}
+                getRelatedRecordsMenuItem={this.props.getRelatedRecordsMenuItem}
               />
             );
           }
