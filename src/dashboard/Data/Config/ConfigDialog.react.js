@@ -10,6 +10,7 @@ import Dropdown from 'components/Dropdown/Dropdown.react';
 import Field from 'components/Field/Field.react';
 import FileInput from 'components/FileInput/FileInput.react';
 import GeoPointInput from 'components/GeoPointInput/GeoPointInput.react';
+import Icon from 'components/Icon/Icon.react';
 import Label from 'components/Label/Label.react';
 import Modal from 'components/Modal/Modal.react';
 import NonPrintableHighlighter, { hasNonPrintableChars, getNonPrintableCharsFromJson, hasNonAlphanumericChars, getNonAlphanumericCharsFromJson, getRegexValidation, getRegexValidationFromJson } from 'components/NonPrintableHighlighter/NonPrintableHighlighter.react';
@@ -18,6 +19,8 @@ import Parse from 'parse';
 import React from 'react';
 import TextInput from 'components/TextInput/TextInput.react';
 import Toggle from 'components/Toggle/Toggle.react';
+import Popover from 'components/Popover/Popover.react';
+import Position from 'lib/Position';
 import Button from 'components/Button/Button.react';
 import JsonEditor from 'components/JsonEditor/JsonEditor.react';
 import validateNumeric from 'lib/validateNumeric';
@@ -26,6 +29,7 @@ import semver from 'semver/preload.js';
 import { dateStringUTC } from 'lib/DateUtils';
 import LoaderContainer from 'components/LoaderContainer/LoaderContainer.react';
 import ServerConfigStorage from 'lib/ServerConfigStorage';
+import ConfigConflictDiff from 'dashboard/Data/Config/ConfigConflictDiff.react';
 import { CurrentApp } from 'context/currentApp';
 
 const FORMATTING_CONFIG_KEY = 'config.formatting.syntax';
@@ -119,6 +123,7 @@ export default class ConfigDialog extends React.Component {
 
   constructor(props) {
     super();
+    this.optionsRef = React.createRef();
     this.state = {
       value: null,
       type: 'String',
@@ -126,8 +131,12 @@ export default class ConfigDialog extends React.Component {
       masterKeyOnly: false,
       selectedIndex: null,
       wordWrap: false,
+      showDiff: false,
+      confirmOverride: false,
+      optionsMenuOpen: false,
       error: null,
       syntaxColors: null,
+      showDiscardConfirm: false,
     };
     if (props.param.length > 0) {
       let initialValue = props.value;
@@ -142,10 +151,21 @@ export default class ConfigDialog extends React.Component {
         masterKeyOnly: props.masterKeyOnly,
         selectedIndex: 0,
         wordWrap: false,
+        showDiff: false,
+        confirmOverride: false,
         error: initialError,
         syntaxColors: null,
+        showDiscardConfirm: false,
       };
     }
+
+    // Store initial values for change detection
+    this.initialValues = {
+      name: this.state.name,
+      type: this.state.type,
+      value: this.state.value,
+      masterKeyOnly: this.state.masterKeyOnly,
+    };
   }
 
   componentDidMount() {
@@ -320,14 +340,63 @@ export default class ConfigDialog extends React.Component {
     return true;
   }
 
+  handleCancel() {
+    if (this.state.showDiscardConfirm) {
+      this.setState({ showDiscardConfirm: false });
+      return;
+    }
+    if (this.hasChanges()) {
+      this.setState({ showDiscardConfirm: true });
+    } else {
+      this.props.onCancel();
+    }
+  }
+
+  hasChanges() {
+    if (
+      this.state.name !== this.initialValues.name ||
+      this.state.type !== this.initialValues.type ||
+      this.state.masterKeyOnly !== this.initialValues.masterKeyOnly
+    ) {
+      return true;
+    }
+    const currVal = this.state.value;
+    const initVal = this.initialValues.value;
+    if (currVal === initVal) {
+      return false;
+    }
+    if (this.state.type === 'Date' && currVal && initVal) {
+      return new Date(currVal).getTime() !== new Date(initVal).getTime();
+    }
+    if (this.state.type === 'GeoPoint' && currVal && initVal) {
+      return currVal.latitude !== initVal.latitude || currVal.longitude !== initVal.longitude;
+    }
+    if (this.state.type === 'File' && currVal && initVal) {
+      return currVal.url() !== initVal.url();
+    }
+    return true;
+  }
+
   submit() {
+    if (this.state.showDiscardConfirm) {
+      return;
+    }
     this.props.onConfirm({
       name: this.state.name,
       type: this.state.type,
       value: GET_VALUE[this.state.type](this.state.value),
       masterKeyOnly: this.state.masterKeyOnly,
+      ...(this.props.conflict && this.state.confirmOverride ? { override: true } : {}),
     });
   }
+
+  updateOptionsMenuPos = () => {
+    if (this.optionsRef.current) {
+      const pos = Position.inWindow(this.optionsRef.current);
+      pos.y -= 4;
+      this.setState({ optionsMenuPos: pos });
+    }
+  };
 
   formatValue() {
     const { value, error } = ConfigDialog.formatJSON(this.state.value);
@@ -358,8 +427,16 @@ export default class ConfigDialog extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    // Update parameter value or masterKeyOnly if they have changed
-    if (this.props.value !== prevProps.value || this.props.masterKeyOnly !== prevProps.masterKeyOnly) {
+    // When a conflict is detected (or server value changes during conflict),
+    // don't reset the editor value — preserve user edits.
+    // Auto-enable the Diff toggle and reset the override confirmation.
+    if (this.props.conflict && (!prevProps.conflict || this.props.value !== prevProps.value)) {
+      this.setState({ showDiff: true, confirmOverride: false, showDiscardConfirm: false });
+      return;
+    }
+
+    // Update parameter value or masterKeyOnly if they have changed (non-conflict)
+    if (!this.props.conflict && (this.props.value !== prevProps.value || this.props.masterKeyOnly !== prevProps.masterKeyOnly)) {
       let updatedValue = this.props.value;
       let error = null;
 
@@ -372,6 +449,8 @@ export default class ConfigDialog extends React.Component {
         error,
         masterKeyOnly: this.props.masterKeyOnly,
       });
+      this.initialValues.value = updatedValue;
+      this.initialValues.masterKeyOnly = this.props.masterKeyOnly;
     }
   }
 
@@ -449,6 +528,27 @@ export default class ConfigDialog extends React.Component {
             { detectNonPrintable: effectiveDetectNonPrintable, detectNonAlphanumeric: effectiveDetectNonAlphanumeric, detectRegex: effectiveDetectRegex }
           )}
         />
+        {this.state.showDiff && this.props.param.length > 0 && (
+          <Field
+            label={
+              <Label
+                text="Diff"
+                description="Changes compared to the saved version."
+              />
+            }
+            input={
+              <ConfigConflictDiff
+                serverValue={
+                  (this.state.type === 'Object' || this.state.type === 'Array')
+                    ? (() => { try { return JSON.parse(this.props.value); } catch { return this.props.value; } })()
+                    : this.props.value
+                }
+                userValue={this.state.value}
+                type={this.state.type}
+              />
+            }
+          />
+        )}
 
         {
           /*
@@ -500,67 +600,131 @@ export default class ConfigDialog extends React.Component {
     );
 
     const isJsonType = this.state.type === 'Object' || this.state.type === 'Array';
+    const isDiffableType = isJsonType || this.state.type === 'String';
+    const isExistingParam = this.props.param && this.props.param.length > 0;
     const customFooter = (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '17px 28px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          {isJsonType && (
-            <>
-              <Button
-                value="Format"
-                onClick={this.formatValue.bind(this)}
-                disabled={!this.canFormatValue()}
-              />
-              <Button
-                value="Compact"
-                onClick={this.compactValue.bind(this)}
-                disabled={!this.canFormatValue()}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <Toggle
-                  type={Toggle.Types.HIDE_LABELS}
-                  value={this.state.wordWrap}
-                  onChange={wordWrap => this.setState({ wordWrap })}
-                  additionalStyles={{ margin: '0px' }}
-                  colorLeft="#cbcbcb"
-                  colorRight="#00db7c"
+      <div>
+        {this.props.conflict && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 28px', borderTop: '1px solid #e1e4e8', background: '#ffeef0' }}>
+            <span style={{ color: '#cb2431', fontSize: '13px' }}>
+              Server value changed while editing, see diff view - overwrite it?
+            </span>
+            <Toggle
+              type={Toggle.Types.YES_NO}
+              value={this.state.confirmOverride}
+              onChange={confirmOverride => this.setState({ confirmOverride })}
+              additionalStyles={{ margin: '0px' }}
+            />
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '17px 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            {isJsonType && (
+              <>
+                <Button
+                  value="Format"
+                  onClick={this.formatValue.bind(this)}
+                  disabled={!this.canFormatValue()}
                 />
-                <span style={{ color: this.state.wordWrap ? '#333' : '#999' }}>Wrap</span>
-              </label>
-              {this.state.error && (
-                <span style={{ color: '#d73a49', fontSize: '13px' }}>{this.state.error}</span>
-              )}
-            </>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Button value="Cancel" onClick={this.props.onCancel} />
-          <Button
-            primary={true}
-            color="blue"
-            value={newParam ? 'Create' : 'Save'}
-            onClick={this.submit.bind(this)}
-            disabled={!this.valid() || this.props.loading}
-          />
+                <Button
+                  value="Compact"
+                  onClick={this.compactValue.bind(this)}
+                  disabled={!this.canFormatValue()}
+                />
+                {this.state.error && (
+                  <span style={{ color: '#d73a49', fontSize: '13px' }}>{this.state.error}</span>
+                )}
+              </>
+            )}
+            {(isJsonType || (isDiffableType && isExistingParam)) && (
+              <div ref={this.optionsRef}>
+                <Button
+                  value="Options &#9662;"
+                  onClick={() => {
+                    const node = this.optionsRef.current;
+                    const pos = Position.inWindow(node);
+                    pos.y -= 4; // small gap above button
+                    this.setState({ optionsMenuOpen: !this.state.optionsMenuOpen, optionsMenuPos: pos });
+                  }}
+                />
+                {this.state.optionsMenuOpen && this.state.optionsMenuPos && (
+                  <Popover
+                    fixed={true}
+                    position={this.state.optionsMenuPos}
+                    onExternalClick={() => { document.activeElement?.blur(); this.setState({ optionsMenuOpen: false }); }}
+                  >
+                    <div style={{ background: '#fff', border: '1px solid #e1e4e8', borderRadius: '4px', boxShadow: '0 3px 12px rgba(0,0,0,0.15)', padding: '4px 0', minWidth: '130px', transform: 'translateY(-100%)' }}>
+                      {isJsonType && (
+                        <div
+                          onClick={() => { document.activeElement?.blur(); this.setState({ wordWrap: !this.state.wordWrap, optionsMenuOpen: false }); }}
+                          style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', fontSize: '14px', color: '#333', gap: '8px' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#f6f8fa'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <span style={{ width: '12px', display: 'inline-block' }}>{this.state.wordWrap && <Icon name="check" width={12} height={12} fill="#00db7c" />}</span>
+                          <span>Word wrap</span>
+                        </div>
+                      )}
+                      {isDiffableType && isExistingParam && (
+                        <div
+                          onClick={() => { document.activeElement?.blur(); this.setState({ showDiff: !this.state.showDiff, optionsMenuOpen: false }); }}
+                          style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', fontSize: '14px', color: '#333', gap: '8px' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#f6f8fa'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <span style={{ width: '12px', display: 'inline-block' }}>{this.state.showDiff && <Icon name="check" width={12} height={12} fill="#00db7c" />}</span>
+                          <span>Diff view</span>
+                        </div>
+                      )}
+                    </div>
+                  </Popover>
+                )}
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Button value="Cancel" onClick={this.handleCancel.bind(this)} />
+            <Button
+              primary={true}
+              color="blue"
+              value={newParam ? 'Create' : 'Save'}
+              onClick={this.submit.bind(this)}
+              disabled={!this.valid() || this.props.loading || (this.props.conflict && !this.state.confirmOverride)}
+            />
+          </div>
         </div>
       </div>
     );
 
     return (
-      <Modal
-        type={Modal.Types.INFO}
-        title={newParam ? 'New parameter' : 'Edit parameter'}
-        icon="gear-solid"
-        iconSize={30}
-        subtitle={'Dynamically configure parts of your app'}
-        customFooter={customFooter}
-        disabled={!this.valid() || this.props.loading}
-        onCancel={this.props.onCancel}
-        onConfirm={this.submit.bind(this)}
-      >
-        <LoaderContainer loading={this.props.loading}>
-          {dialogContent}
-        </LoaderContainer>
-      </Modal>
+      <>
+        <Modal
+          type={Modal.Types.INFO}
+          title={newParam ? 'New parameter' : 'Edit parameter'}
+          icon="gear-solid"
+          iconSize={30}
+          subtitle={'Dynamically configure parts of your app'}
+          customFooter={customFooter}
+          disabled={!this.valid() || this.props.loading || (this.props.conflict && !this.state.confirmOverride)}
+          onCancel={this.handleCancel.bind(this)}
+          onConfirm={this.submit.bind(this)}
+        >
+          <LoaderContainer loading={this.props.loading}>
+            {dialogContent}
+          </LoaderContainer>
+        </Modal>
+        {this.state.showDiscardConfirm && (
+          <Modal
+            type={Modal.Types.DANGER}
+            title="Discard unsaved changes?"
+            subtitle="Your changes will be lost."
+            confirmText="Discard"
+            cancelText="Keep editing"
+            onConfirm={this.props.onCancel}
+            onCancel={() => this.setState({ showDiscardConfirm: false })}
+          />
+        )}
+      </>
     );
   }
 }

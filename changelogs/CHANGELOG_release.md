@@ -1,3 +1,38 @@
+## [9.1.1](https://github.com/parse-community/parse-dashboard/compare/9.1.0...9.1.1) (2026-04-07)
+
+
+### Bug Fixes
+
+* Broken CSS styling for components with underscore class names ([#3328](https://github.com/parse-community/parse-dashboard/issues/3328)) ([2048abe](https://github.com/parse-community/parse-dashboard/commit/2048abe1322f27f08497d62f141c2540cf7a4eb6))
+
+# [9.1.0](https://github.com/parse-community/parse-dashboard/compare/9.0.0...9.1.0) (2026-04-07)
+
+
+### Bug Fixes
+
+* Bump fast-xml-parser from 5.3.5 to 5.3.6 ([#3223](https://github.com/parse-community/parse-dashboard/issues/3223)) ([aee458b](https://github.com/parse-community/parse-dashboard/commit/aee458b36a88ee28bc9e551bbe994d964261895b))
+* Cell content not selected on double clicking data browser cell ([#3271](https://github.com/parse-community/parse-dashboard/issues/3271)) ([9df3beb](https://github.com/parse-community/parse-dashboard/commit/9df3bebd961b8ddc20074523de04ee39e07c378e))
+* Column resizing mouse cursor in data browser not visible in Safari browser ([#3246](https://github.com/parse-community/parse-dashboard/issues/3246)) ([e6fb4d7](https://github.com/parse-community/parse-dashboard/commit/e6fb4d7b85452e93368299bcd8f73418eaee5da5))
+* Date value cannot be pasted into date field in data browser ([#3243](https://github.com/parse-community/parse-dashboard/issues/3243)) ([e902bea](https://github.com/parse-community/parse-dashboard/commit/e902bea4302d025898dce44aedcc904617f7ee74))
+* Edit icon does not disappear when hovering out of saved filter name in data browser sidebar ([#3245](https://github.com/parse-community/parse-dashboard/issues/3245)) ([d3dcfce](https://github.com/parse-community/parse-dashboard/commit/d3dcfce23c1ad7876604aa2018d1ba3efe2cf8e6))
+* Layout issues when resizing Cloud Config parameter dialog ([#3241](https://github.com/parse-community/parse-dashboard/issues/3241)) ([c6e95d9](https://github.com/parse-community/parse-dashboard/commit/c6e95d9e1f3ac8f5e68cd1cc2c70664abc670dd0))
+* Remove unused dependencies ([#3227](https://github.com/parse-community/parse-dashboard/issues/3227)) ([3ba250d](https://github.com/parse-community/parse-dashboard/commit/3ba250df8421166b00eb906b191c147e237a3606))
+* Security removal dependency null-loader ([#3230](https://github.com/parse-community/parse-dashboard/issues/3230)) ([5e1b1fa](https://github.com/parse-community/parse-dashboard/commit/5e1b1fa0912c48a5698dc80819a27b85627ef0f3))
+* Security removal dependency svg-prep ([#3236](https://github.com/parse-community/parse-dashboard/issues/3236)) ([abb08c6](https://github.com/parse-community/parse-dashboard/commit/abb08c63b3a5b2c0102560ca21353bc7885cc63e))
+* Security upgrade transitive dependency ajv ([#3231](https://github.com/parse-community/parse-dashboard/issues/3231)) ([d1e5e41](https://github.com/parse-community/parse-dashboard/commit/d1e5e4156f5b0485afe8021e9525565922530d36))
+* Security upgrade transitive dependency qs ([#3228](https://github.com/parse-community/parse-dashboard/issues/3228)) ([225c710](https://github.com/parse-community/parse-dashboard/commit/225c71047eedb57cb4134ac618adf629b2ab07a2))
+* Security upgrade transitive dependency undici ([#3229](https://github.com/parse-community/parse-dashboard/issues/3229)) ([8e1be1f](https://github.com/parse-community/parse-dashboard/commit/8e1be1f8bee5aef85e4a2ed686b5007d9d814f7e))
+* Security upgrade undici ([#3265](https://github.com/parse-community/parse-dashboard/issues/3265)) ([df23ef8](https://github.com/parse-community/parse-dashboard/commit/df23ef816c146aeeae1dd7269fa64c14f8923778))
+
+### Features
+
+* Add confirmation dialog when closing Cloud Config edit parameter dialog without saving changes ([#3247](https://github.com/parse-community/parse-dashboard/issues/3247)) ([9ec03e0](https://github.com/parse-community/parse-dashboard/commit/9ec03e09f40c0af2380fa841b902c99119e31ea6))
+* Add diff view to Cloud Config parameter dialog for better conflict handling ([#3239](https://github.com/parse-community/parse-dashboard/issues/3239)) ([f007a68](https://github.com/parse-community/parse-dashboard/commit/f007a6836a5477c014b2139600fda03073bde4be))
+* Add support for data import in data browser ([#3244](https://github.com/parse-community/parse-dashboard/issues/3244)) ([16f60f4](https://github.com/parse-community/parse-dashboard/commit/16f60f45b00ad98d95178efe7601f283c57d0a07))
+* Enforce remote access restrictions on `agent` endpoint ([#3255](https://github.com/parse-community/parse-dashboard/issues/3255)) ([edef824](https://github.com/parse-community/parse-dashboard/commit/edef824d2243bf1930d07466bf7909d88c490786))
+* Graph support for nested Object field values ([#3326](https://github.com/parse-community/parse-dashboard/issues/3326)) ([4562381](https://github.com/parse-community/parse-dashboard/commit/456238143523d296b499b5d7c20e42a3b09d44d9))
+* Highlight row of selected cell in data browser ([#3270](https://github.com/parse-community/parse-dashboard/issues/3270)) ([298ae63](https://github.com/parse-community/parse-dashboard/commit/298ae6328b61381577c51349405f81bfd9e7a1bc))
+
 # [9.0.0](https://github.com/parse-community/parse-dashboard/compare/8.5.0...9.0.0) (2026-02-19)
 
 

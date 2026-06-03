@@ -120,7 +120,6 @@ export default class BrowserTable extends React.Component {
     }));
 
     const stickyLefts = [];
-    const handleLefts = [];
     const maxRowNumber =
       this.props.skip + (this.props.data ? this.props.data.length : this.props.limit);
     const rowNumberWidth = this.props.showRowNumber
@@ -130,13 +129,18 @@ export default class BrowserTable extends React.Component {
       let left = 30 + rowNumberWidth;
       headers.forEach((h, i) => {
         stickyLefts[i] = left;
-        handleLefts[i] = left + h.width;
         if (h.visible) {
           left += h.width;
         }
       });
     }
     let editor = null;
+    const isRowHighlighted = (rowIndex) =>
+      (this.props.current && this.props.current.row === rowIndex) ||
+      (this.props.selectedCells &&
+        this.props.selectedCells.rowStart >= 0 &&
+        rowIndex >= this.props.selectedCells.rowStart &&
+        rowIndex <= this.props.selectedCells.rowEnd);
     let table = <div ref={this.tableRef} />;
     if (this.props.data) {
       const rowWidth =
@@ -162,6 +166,7 @@ export default class BrowserTable extends React.Component {
                     appId={this.props.appId}
                     key={index}
                     isEditing={isEditingRow}
+                    isHighlighted={isRowHighlighted(index)}
                     className={this.props.className}
                     columns={this.props.columns}
                     schema={this.props.schema}
@@ -257,6 +262,7 @@ export default class BrowserTable extends React.Component {
             <BrowserRow
               appId={this.props.appId}
               key={-1}
+              isHighlighted={isRowHighlighted(-1)}
               className={this.props.className}
               columns={this.props.columns}
               currentCol={currentCol}
@@ -351,6 +357,7 @@ export default class BrowserTable extends React.Component {
             appId={this.props.appId}
             key={index}
             isEditing={isEditingRow}
+            isHighlighted={isRowHighlighted(i)}
             className={this.props.className}
             columns={this.props.columns}
             schema={this.props.schema}
@@ -620,7 +627,6 @@ export default class BrowserTable extends React.Component {
           }
           headers={headers}
           stickyLefts={stickyLefts}
-          handleLefts={handleLefts}
           freezeIndex={this.props.freezeIndex}
           freezeColumns={this.props.freezeColumns}
           unfreezeColumns={this.props.unfreezeColumns}

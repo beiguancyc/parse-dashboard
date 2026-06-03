@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) 2016-present, Parse, LLC
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the LICENSE file in
+ * the root directory of this source tree.
+ */
+.container {
+  contain: inline-size;
+  width: 100%;
+  min-width: 0;
+  overflow: auto;
+  height: 80px;
+  min-height: 80px;
+  resize: vertical;
+  text-align: left;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.lineNumber {
+  width: 1%;
+  min-width: 40px;
+  padding: 0 8px;
+  text-align: right;
+  color: rgba(27, 31, 36, 0.3);
+  vertical-align: top;
+  user-select: none;
+  border-right: 1px solid #d1d5da;
+}
+
+.prefix {
+  width: 1%;
+  padding: 0 4px;
+  user-select: none;
+  vertical-align: top;
+}
+
+.content {
+  padding: 0 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.lineRemoved {
+  background-color: #ffeef0;
+}
+
+.lineAdded {
+  background-color: #e6ffec;
+}
+
+.lineContext {
+  background-color: transparent;
+}
+
+.charRemoved {
+  background-color: #fdaeb7;
+  border-radius: 2px;
+}
+
+.charAdded {
+  background-color: #abf2bc;
+  border-radius: 2px;
+}
+
+.emptyDiff {
+  padding: 16px 20px;
+  color: #586069;
+  font-style: italic;
+  text-align: center;
+}

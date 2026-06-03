@@ -18,14 +18,13 @@
   display: block;
   min-width: 100%;
   width: max-content;
-  // to resolve rendering issue with retina displays
-  -webkit-transform: translate3d(0, 0, 0);
-  will-change: transform;
 }
 
 .wrap {
+  position: relative;
   display: inline-block;
   vertical-align: top;
+  cursor: pointer;
 }
 
 .addColumn {
@@ -71,12 +70,24 @@
 }
 
 .handle {
-  position: relative;
-  display: inline-block;
-  width: 8px;
+  position: absolute;
+  right: -8px;
+  top: 0;
+  width: 16px;
   height: 30px;
-  margin: 0 -4px;
-  cursor: ew-resize;
+  z-index: 2;
+  cursor: col-resize;
+  background: rgba(255, 255, 255, 0);
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.handleFreeze {
+  right: -4px;
+  width: 8px;
 }
 
 .pickerPointer {
