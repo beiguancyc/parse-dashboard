@@ -70,3 +70,50 @@
 .dragging {
   background: $blue;
 }
+
+.noteIcon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  color: #d4d0e0;
+  cursor: default;
+  position: relative;
+  vertical-align: middle;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.noteTooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: #2c2a3e;
+  color: #eee;
+  font-size: 11px;
+  line-height: 1.4;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 260px;
+  min-width: 80px;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: #2c2a3e;
+  }
+}

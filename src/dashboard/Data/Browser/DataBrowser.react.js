@@ -15,6 +15,11 @@ import { dateStringUTC } from 'lib/DateUtils';
 import GraphDialog from 'dashboard/Data/Browser/GraphDialog.react';
 import GraphPanel from 'components/GraphPanel/GraphPanel.react';
 import GraphPreferencesManager from 'lib/GraphPreferencesManager';
+import ColumnNotesManager from 'lib/ColumnNotesManager';
+import Modal from 'components/Modal/Modal.react';
+import Field from 'components/Field/Field.react';
+import Label from 'components/Label/Label.react';
+import TextInput from 'components/TextInput/TextInput.react';
 import getFileName from 'lib/getFileName';
 import { getValidScripts, executeScript } from '../../../lib/ScriptUtils';
 import Parse from 'parse';
@@ -202,6 +207,10 @@ export default class DataBrowser extends React.Component {
       optionKeyPressed: false, // Whether the Option/Alt key is currently pressed (pauses auto-scroll)
       reverseAutoScrollActive: false, // Whether Cmd+Option are both held (reverses auto-scroll direction)
       reverseAutoScrollSpeedFactor: 1, // Speed multiplier for reverse auto-scroll
+      columnNotes: {},
+      showColumnNoteDialog: false,
+      editingNoteColumn: null,
+      editingNoteText: '',
     };
 
     // Flag to skip panel clearing in componentDidUpdate during selective object refresh
@@ -286,6 +295,9 @@ export default class DataBrowser extends React.Component {
     this.multiPanelWrapperElement = null;
     this.setMultiPanelWrapperRef = this.setMultiPanelWrapperRef.bind(this);
     this.graphPreferencesManager = new GraphPreferencesManager(props.app);
+    this.columnNotesManager = new ColumnNotesManager(props.app);
+    this.handleEditColumnNote = this.handleEditColumnNote.bind(this);
+    this.handleSaveColumnNote = this.handleSaveColumnNote.bind(this);
   }
 
   setMultiPanelWrapperRef(element) {
@@ -411,6 +423,17 @@ export default class DataBrowser extends React.Component {
       console.error('Failed to load graphs on mount:', error);
       this.setState({ availableGraphs: [], graphConfig: null });
     }
+
+    // Load column notes
+    try {
+      const notes = await this.columnNotesManager.getNotes(
+        this.props.app.applicationId,
+        this.props.className
+      );
+      this.setState({ columnNotes: notes });
+    } catch (error) {
+      console.warn('Failed to load column notes:', error);
+    }
   }
 
   componentWillUnmount() {
@@ -469,6 +492,18 @@ export default class DataBrowser extends React.Component {
           graphConfig: null,
           availableGraphs: []
         });
+      }
+
+      // Reload column notes when class changes
+      try {
+        const notes = await this.columnNotesManager.getNotes(
+          this.props.app.applicationId,
+          this.props.className
+        );
+        this.setState({ columnNotes: notes });
+      } catch (error) {
+        console.warn('Failed to load column notes on className change:', error);
+        this.setState({ columnNotes: {} });
       }
     }
 
@@ -1552,6 +1587,7 @@ export default class DataBrowser extends React.Component {
       contextMenuItems,
       showScriptConfirmationDialog,
       showGraphDialog,
+      showColumnNoteDialog,
       nativeContextMenuOpen,
       mouseOutsidePanel,
       mouseOverPanelHeader,
@@ -1571,6 +1607,7 @@ export default class DataBrowser extends React.Component {
       (contextMenuItems && contextMenuItems.length > 0) ||
       showScriptConfirmationDialog ||
       showGraphDialog ||
+      showColumnNoteDialog ||
       nativeContextMenuOpen ||
       disableKeyControls ||
       hoverBlocked ||
@@ -2063,6 +2100,32 @@ export default class DataBrowser extends React.Component {
 
   hideGraphDialog() {
     this.setState({ showGraphDialog: false });
+  }
+
+  handleEditColumnNote(columnName, currentNote) {
+    this.setState({
+      showColumnNoteDialog: true,
+      editingNoteColumn: columnName,
+      editingNoteText: currentNote || '',
+    });
+  }
+
+  async handleSaveColumnNote() {
+    const { editingNoteColumn, editingNoteText } = this.state;
+    const appId = this.props.app.applicationId;
+    const className = this.props.className;
+
+    this.setState({ showColumnNoteDialog: false });
+
+    try {
+      await this.columnNotesManager.setNote(appId, className, editingNoteColumn, editingNoteText);
+      const notes = await this.columnNotesManager.getNotes(appId, className);
+      this.setState({ columnNotes: notes });
+      this.props.showNote?.('Column note saved.');
+    } catch (error) {
+      this.props.showNote?.('Failed to save column note.');
+      console.error('Failed to save column note:', error);
+    }
   }
 
   async saveGraphConfig(config) {
@@ -2761,6 +2824,8 @@ export default class DataBrowser extends React.Component {
             setSelectedObjectId={this.setSelectedObjectId}
             callCloudFunction={this.handleCallCloudFunction}
             setContextMenu={this.setContextMenu}
+            columnNotes={this.state.columnNotes}
+            onEditColumnNote={this.handleEditColumnNote}
             getRelatedRecordsMenuItem={(textValue) => buildRelatedTextFieldsMenuItem(
               this.props.schema,
               textValue,
@@ -3055,6 +3120,27 @@ export default class DataBrowser extends React.Component {
             onCancel={this.hideGraphDialog}
             onDelete={this.deleteGraphConfig}
           />
+        )}
+        {this.state.showColumnNoteDialog && (
+          <Modal
+            type={Modal.Types.INFO}
+            title={`Column note: ${this.state.editingNoteColumn}`}
+            confirmText="Save"
+            onConfirm={this.handleSaveColumnNote}
+            onCancel={() => this.setState({ showColumnNoteDialog: false })}
+          >
+            <Field
+              label={<Label text="Note" />}
+              input={
+                <TextInput
+                  multiline={true}
+                  placeholder="Enter a note for this column..."
+                  value={this.state.editingNoteText}
+                  onChange={value => this.setState({ editingNoteText: value })}
+                />
+              }
+            />
+          </Modal>
         )}
       </div>
     );

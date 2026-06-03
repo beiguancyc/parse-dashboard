@@ -108,6 +108,7 @@ export default class BrowserTable extends React.Component {
       }
     }
 
+    const columnNotes = this.props.columnNotes || {};
     const headers = this.props.order.map(({ name, width, visible, preventSort, required }) => ({
       width: width,
       name: name,
@@ -117,6 +118,7 @@ export default class BrowserTable extends React.Component {
       visible,
       preventSort,
       required,
+      note: columnNotes[name] || null,
     }));
 
     const stickyLefts = [];
@@ -643,6 +645,7 @@ export default class BrowserTable extends React.Component {
           setSelectedObjectId={this.props.setSelectedObjectId}
           setCurrent={this.props.setCurrent}
           setContextMenu={this.props.setContextMenu}
+          onEditColumnNote={this.props.onEditColumnNote}
         />
         {table}
       </div>

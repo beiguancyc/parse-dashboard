@@ -53,6 +53,12 @@ const dataBrowserHeaderSource = {
   isDragging: monitor.isDragging(),
 }))
 class DataBrowserHeader extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { showTooltip: false };
+    this.noteIconRef = React.createRef();
+  }
+
   render() {
     const {
       connectDragSource,
@@ -64,6 +70,7 @@ class DataBrowserHeader extends React.Component {
       style,
       isDragging,
       isOver,
+      note,
     } = this.props;
     const classes = [styles.header, baseStyles.unselectable];
     if (order) {
@@ -75,10 +82,34 @@ class DataBrowserHeader extends React.Component {
     if (isDragging) {
       classes.push(styles.dragging);
     }
+
+    let noteIndicator = null;
+    if (note) {
+      noteIndicator = (
+        <span
+          ref={this.noteIconRef}
+          className={styles.noteIcon}
+          onMouseEnter={() => this.setState({ showTooltip: true })}
+          onMouseLeave={() => this.setState({ showTooltip: false })}
+          onClick={e => e.stopPropagation()}
+        >
+          ✎
+          {this.state.showTooltip && (
+            <div className={styles.noteTooltip}>
+              {note}
+            </div>
+          )}
+        </span>
+      );
+    }
+
     return connectDragSource(
       connectDropTarget(
         <div className={classes.join(' ')} style={style}>
-          <div className={styles.name}>{name}</div>
+          <div className={styles.name}>
+            {name}
+            {noteIndicator}
+          </div>
           <div className={styles.type}>{targetClass ? `${type} <${targetClass}>` : type}</div>
         </div>
       )

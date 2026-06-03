@@ -22,6 +22,8 @@ export default class DataBrowserHeaderBar extends React.Component {
       setContextMenu,
       showRowNumber,
       setShowRowNumber,
+      headers,
+      onEditColumnNote,
     } = this.props;
     const items = [
       {
@@ -32,6 +34,13 @@ export default class DataBrowserHeaderBar extends React.Component {
         ? { text: 'Unfreeze column', callback: () => unfreezeColumns() }
         : { text: 'Freeze column', callback: () => freezeColumns(index) },
     ];
+    if (onEditColumnNote && headers[index]) {
+      const columnName = headers[index].name;
+      items.push({
+        text: headers[index].note ? 'Edit column note' : 'Add column note',
+        callback: () => onEditColumnNote(columnName, headers[index].note || ''),
+      });
+    }
     setContextMenu(event.pageX, event.pageY, items);
   };
 
@@ -87,7 +96,7 @@ export default class DataBrowserHeaderBar extends React.Component {
       );
     }
 
-    headers.forEach(({ width, name, type, targetClass, order, visible, preventSort }, i) => {
+    headers.forEach(({ width, name, type, targetClass, order, visible, preventSort, note }, i) => {
       if (!visible) {
         return;
       }
@@ -138,6 +147,7 @@ export default class DataBrowserHeaderBar extends React.Component {
             targetClass={targetClass}
             order={order}
             index={i}
+            note={note}
             moveDataBrowserHeader={this.props.handleDragDrop}
           />
           <DragHandle
