@@ -57,11 +57,11 @@ class DataBrowserHeader extends React.Component {
   constructor(props) {
     super(props);
     this.state = { showTooltip: false, tooltipPos: null };
-    this.typeLineRef = React.createRef();
+    this.headerRef = React.createRef();
   }
 
   handleMouseEnter = () => {
-    const el = this.typeLineRef.current;
+    const el = this.headerRef.current;
     if (el) {
       const rect = el.getBoundingClientRect();
       this.setState({
@@ -104,7 +104,6 @@ class DataBrowserHeader extends React.Component {
 
     const typeText = targetClass ? `${type} <${targetClass}>` : type;
 
-    // 通过 Portal 将 tooltip 渲染到 body，避免被父容器 overflow:hidden 截断
     const tooltip =
       this.state.showTooltip && this.state.tooltipPos && note
         ? ReactDOM.createPortal(
@@ -123,16 +122,17 @@ class DataBrowserHeader extends React.Component {
 
     return connectDragSource(
       connectDropTarget(
-        <div className={classes.join(' ')} style={style}>
+        <div
+          ref={this.headerRef}
+          className={classes.join(' ')}
+          style={style}
+          onMouseEnter={note ? this.handleMouseEnter : undefined}
+          onMouseLeave={note ? this.handleMouseLeave : undefined}
+        >
           <div className={note ? styles.nameWithNote : styles.name}>
             {name}
           </div>
-          <div
-            ref={this.typeLineRef}
-            className={styles.type}
-            onMouseEnter={note ? this.handleMouseEnter : undefined}
-            onMouseLeave={note ? this.handleMouseLeave : undefined}
-          >
+          <div className={styles.type}>
             {typeText}
             {note && <span className={styles.noteText}> · {note}</span>}
           </div>
