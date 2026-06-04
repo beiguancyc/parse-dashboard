@@ -68,11 +68,14 @@ export default class ColumnNotesManager {
         delete notes[columnName];
       }
 
-      await this.serverStorage.setConfig(
-        `${KEY_PREFIX}${className}`,
-        notes,
-        appId
-      );
+      const key = `${KEY_PREFIX}${className}`;
+
+      if (Object.keys(notes).length === 0) {
+        // 所有备注都清空了，删除整条服务端记录
+        await this.serverStorage.deleteConfig(key, appId);
+      } else {
+        await this.serverStorage.setConfig(key, notes, appId);
+      }
 
       // 更新缓存
       if (!notesCache[appId]) {
