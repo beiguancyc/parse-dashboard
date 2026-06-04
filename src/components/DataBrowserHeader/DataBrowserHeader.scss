@@ -75,24 +75,28 @@
   display: inline-block;
   margin-left: 4px;
   font-size: 10px;
-  color: #d4d0e0;
+  color: #f5a623;
   cursor: default;
-  position: relative;
   vertical-align: middle;
-  opacity: 0.8;
+  opacity: 0.9;
   transition: opacity 0.15s ease;
 
   &:hover {
     opacity: 1;
+    color: #ffcc00;
   }
 }
 
+// 备注内容跟在数据类型后面显示
+.noteText {
+  color: #f5a623;
+  font-size: 10px;
+}
+
+// Portal 渲染到 body 的悬浮提示
 .noteTooltip {
-  position: absolute;
-  top: 100%;
-  left: 50%;
+  position: fixed;
   transform: translateX(-50%);
-  margin-top: 6px;
   padding: 6px 10px;
   background: #2c2a3e;
   color: #eee;
@@ -101,10 +105,10 @@
   border-radius: 4px;
   white-space: pre-wrap;
   word-break: break-word;
-  max-width: 260px;
+  max-width: 280px;
   min-width: 80px;
-  z-index: 100;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
   pointer-events: none;
 
   &::before {

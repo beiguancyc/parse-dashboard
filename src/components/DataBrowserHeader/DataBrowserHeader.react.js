@@ -7,6 +7,7 @@
  */
 import PropTypes from 'lib/PropTypes';
 import React from 'react';
+import ReactDOM from 'react-dom';
 import styles from 'components/DataBrowserHeader/DataBrowserHeader.scss';
 import baseStyles from 'stylesheets/base.scss';
 import { DragSource, DropTarget } from 'react-dnd';
@@ -55,9 +56,27 @@ const dataBrowserHeaderSource = {
 class DataBrowserHeader extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { showTooltip: false };
+    this.state = { showTooltip: false, tooltipPos: null };
     this.noteIconRef = React.createRef();
   }
+
+  handleMouseEnter = () => {
+    const el = this.noteIconRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      this.setState({
+        showTooltip: true,
+        tooltipPos: {
+          top: rect.bottom + 6,
+          left: rect.left + rect.width / 2,
+        },
+      });
+    }
+  };
+
+  handleMouseLeave = () => {
+    this.setState({ showTooltip: false, tooltipPos: null });
+  };
 
   render() {
     const {
@@ -89,19 +108,33 @@ class DataBrowserHeader extends React.Component {
         <span
           ref={this.noteIconRef}
           className={styles.noteIcon}
-          onMouseEnter={() => this.setState({ showTooltip: true })}
-          onMouseLeave={() => this.setState({ showTooltip: false })}
+          onMouseEnter={this.handleMouseEnter}
+          onMouseLeave={this.handleMouseLeave}
           onClick={e => e.stopPropagation()}
         >
           ✎
-          {this.state.showTooltip && (
-            <div className={styles.noteTooltip}>
-              {note}
-            </div>
-          )}
         </span>
       );
     }
+
+    // 通过 Portal 将 tooltip 渲染到 body，避免被父容器 overflow:hidden 截断
+    const tooltip =
+      this.state.showTooltip && this.state.tooltipPos
+        ? ReactDOM.createPortal(
+            <div
+              className={styles.noteTooltip}
+              style={{
+                top: this.state.tooltipPos.top,
+                left: this.state.tooltipPos.left,
+              }}
+            >
+              {note}
+            </div>,
+            document.body
+          )
+        : null;
+
+    const typeText = targetClass ? `${type} <${targetClass}>` : type;
 
     return connectDragSource(
       connectDropTarget(
@@ -110,7 +143,11 @@ class DataBrowserHeader extends React.Component {
             {name}
             {noteIndicator}
           </div>
-          <div className={styles.type}>{targetClass ? `${type} <${targetClass}>` : type}</div>
+          <div className={styles.type}>
+            {typeText}
+            {note && <span className={styles.noteText} title={note}> · {note}</span>}
+          </div>
+          {tooltip}
         </div>
       )
     );
