@@ -57,11 +57,11 @@ class DataBrowserHeader extends React.Component {
   constructor(props) {
     super(props);
     this.state = { showTooltip: false, tooltipPos: null };
-    this.noteIconRef = React.createRef();
+    this.typeLineRef = React.createRef();
   }
 
   handleMouseEnter = () => {
-    const el = this.noteIconRef.current;
+    const el = this.typeLineRef.current;
     if (el) {
       const rect = el.getBoundingClientRect();
       this.setState({
@@ -102,24 +102,11 @@ class DataBrowserHeader extends React.Component {
       classes.push(styles.dragging);
     }
 
-    let noteIndicator = null;
-    if (note) {
-      noteIndicator = (
-        <span
-          ref={this.noteIconRef}
-          className={styles.noteIcon}
-          onMouseEnter={this.handleMouseEnter}
-          onMouseLeave={this.handleMouseLeave}
-          onClick={e => e.stopPropagation()}
-        >
-          ✎
-        </span>
-      );
-    }
+    const typeText = targetClass ? `${type} <${targetClass}>` : type;
 
     // 通过 Portal 将 tooltip 渲染到 body，避免被父容器 overflow:hidden 截断
     const tooltip =
-      this.state.showTooltip && this.state.tooltipPos
+      this.state.showTooltip && this.state.tooltipPos && note
         ? ReactDOM.createPortal(
             <div
               className={styles.noteTooltip}
@@ -134,18 +121,20 @@ class DataBrowserHeader extends React.Component {
           )
         : null;
 
-    const typeText = targetClass ? `${type} <${targetClass}>` : type;
-
     return connectDragSource(
       connectDropTarget(
         <div className={classes.join(' ')} style={style}>
-          <div className={styles.name}>
+          <div className={note ? styles.nameWithNote : styles.name}>
             {name}
-            {noteIndicator}
           </div>
-          <div className={styles.type}>
+          <div
+            ref={this.typeLineRef}
+            className={styles.type}
+            onMouseEnter={note ? this.handleMouseEnter : undefined}
+            onMouseLeave={note ? this.handleMouseLeave : undefined}
+          >
             {typeText}
-            {note && <span className={styles.noteText} title={note}> · {note}</span>}
+            {note && <span className={styles.noteText}> · {note}</span>}
           </div>
           {tooltip}
         </div>

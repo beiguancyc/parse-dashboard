@@ -71,20 +71,10 @@
   background: $blue;
 }
 
-.noteIcon {
-  display: inline-block;
-  margin-left: 4px;
-  font-size: 10px;
+// 有备注时列名使用醒目颜色
+.nameWithNote {
+  composes: name;
   color: #f5a623;
-  cursor: default;
-  vertical-align: middle;
-  opacity: 0.9;
-  transition: opacity 0.15s ease;
-
-  &:hover {
-    opacity: 1;
-    color: #ffcc00;
-  }
 }
 
 // 备注内容跟在数据类型后面显示
