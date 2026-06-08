@@ -216,19 +216,21 @@ export default class ServerConfigStorage {
   }
 
   /**
-   * 将表的 CLP 锁定为所有操作都需要 masterKey。
+   * 将表的 CLP 锁定为仅 masterKey 可访问。
+   * 所有操作设为空对象 {}，即不授权给任何用户/角色/public，
+   * 只有携带 masterKey 的请求才能访问。
    * 异步执行，不阻塞主流程，失败仅打印警告。
    * @private
    */
   _lockdownCLP() {
     const clp = {
-      find: { requiresMasterKey: true },
-      count: { requiresMasterKey: true },
-      get: { requiresMasterKey: true },
-      create: { requiresMasterKey: true },
-      update: { requiresMasterKey: true },
-      delete: { requiresMasterKey: true },
-      addField: { requiresMasterKey: true },
+      find: {},
+      count: {},
+      get: {},
+      create: {},
+      update: {},
+      delete: {},
+      addField: {},
       protectedFields: {},
     };
 
