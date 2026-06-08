@@ -32,8 +32,10 @@ export default class ColumnNotesManager {
    * @returns {Promise<Object>} { columnName: noteText, ... }
    */
   async getNotes(appId, className) {
-    if (notesCache[appId]?.[className]) {
-      return { ...notesCache[appId][className] };
+    const cached = notesCache[appId]?.[className];
+    // 缓存命中且非空对象时直接返回；空对象不缓存，避免 deleteConfig 后残留
+    if (cached && Object.keys(cached).length > 0) {
+      return { ...cached };
     }
 
     try {
@@ -71,17 +73,18 @@ export default class ColumnNotesManager {
       const key = `${KEY_PREFIX}${className}`;
 
       if (Object.keys(notes).length === 0) {
-        // 所有备注都清空了，删除整条服务端记录
+        // 所有备注都清空了，删除服务端记录并清除缓存
         await this.serverStorage.deleteConfig(key, appId);
+        if (notesCache[appId]) {
+          delete notesCache[appId][className];
+        }
       } else {
         await this.serverStorage.setConfig(key, notes, appId);
+        if (!notesCache[appId]) {
+          notesCache[appId] = {};
+        }
+        notesCache[appId][className] = notes;
       }
-
-      // 更新缓存
-      if (!notesCache[appId]) {
-        notesCache[appId] = {};
-      }
-      notesCache[appId][className] = notes;
     } catch (error) {
       console.error('Failed to save column note:', error);
       throw error;
