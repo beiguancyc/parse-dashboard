@@ -108,6 +108,7 @@ const BrowserToolbar = ({
   runScriptShortcut,
   reloadDataTableAfterScript,
   toggleReloadDataTableAfterScript,
+  onShowAllColumnNotes,
 }) => {
   const selectionLength = Object.keys(selection).length;
   const isPendingEditCloneRows = editCloneRows && editCloneRows.length > 0;
@@ -540,6 +541,11 @@ const BrowserToolbar = ({
           </BrowserMenu>
         </BrowserMenu>
       </BrowserMenu>
+      <div className={styles.toolbarSeparator} />
+      <a className={classes.join(' ')} onClick={onShowAllColumnNotes}>
+        <Icon name="edit-solid" width={14} height={14} />
+        <span>Notes</span>
+      </a>
       <div className={styles.toolbarSeparator} />
       <BrowserMenu setCurrent={setCurrent} title="Graph" icon="analytics-solid">
         <MenuItem

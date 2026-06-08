@@ -211,6 +211,8 @@ export default class DataBrowser extends React.Component {
       showColumnNoteDialog: false,
       editingNoteColumn: null,
       editingNoteText: '',
+      showAllColumnNotesDialog: false,
+      allColumnNotesEditing: {},
     };
 
     // Flag to skip panel clearing in componentDidUpdate during selective object refresh
@@ -298,6 +300,8 @@ export default class DataBrowser extends React.Component {
     this.columnNotesManager = new ColumnNotesManager(props.app);
     this.handleEditColumnNote = this.handleEditColumnNote.bind(this);
     this.handleSaveColumnNote = this.handleSaveColumnNote.bind(this);
+    this.handleShowAllColumnNotes = this.handleShowAllColumnNotes.bind(this);
+    this.handleSaveAllColumnNotes = this.handleSaveAllColumnNotes.bind(this);
   }
 
   setMultiPanelWrapperRef(element) {
@@ -2128,6 +2132,41 @@ export default class DataBrowser extends React.Component {
     }
   }
 
+  handleShowAllColumnNotes() {
+    this.setState({
+      showAllColumnNotesDialog: true,
+      allColumnNotesEditing: { ...this.state.columnNotes },
+    });
+  }
+
+  async handleSaveAllColumnNotes() {
+    const { allColumnNotesEditing } = this.state;
+    const appId = this.props.app.applicationId;
+    const className = this.props.className;
+
+    this.setState({ showAllColumnNotesDialog: false });
+
+    try {
+      const oldNotes = { ...this.state.columnNotes };
+      const allKeys = new Set([...Object.keys(oldNotes), ...Object.keys(allColumnNotesEditing)]);
+
+      for (const col of allKeys) {
+        const oldVal = (oldNotes[col] || '').trim();
+        const newVal = (allColumnNotesEditing[col] || '').trim();
+        if (oldVal !== newVal) {
+          await this.columnNotesManager.setNote(appId, className, col, newVal);
+        }
+      }
+
+      const notes = await this.columnNotesManager.getNotes(appId, className);
+      this.setState({ columnNotes: notes });
+      this.props.showNote?.('Column notes saved.');
+    } catch (error) {
+      this.props.showNote?.('Failed to save column notes.');
+      console.error('Failed to save column notes:', error);
+    }
+  }
+
   async saveGraphConfig(config) {
     // Ensure config has an ID for server storage
     const configWithId = {
@@ -3081,6 +3120,7 @@ export default class DataBrowser extends React.Component {
           toggleGraphPanel={this.toggleGraphPanelVisibility}
           isGraphPanelVisible={this.state.isGraphPanelVisible}
           runScriptShortcut={this.state.keyboardShortcuts?.dataBrowserRunScriptOnSelectedRows?.key?.toUpperCase()}
+          onShowAllColumnNotes={this.handleShowAllColumnNotes}
           {...other}
           onRefresh={this.handleRefresh}
         />
@@ -3120,6 +3160,67 @@ export default class DataBrowser extends React.Component {
             onCancel={this.hideGraphDialog}
             onDelete={this.deleteGraphConfig}
           />
+        )}
+        {this.state.showAllColumnNotesDialog && (
+          <Modal
+            type={Modal.Types.INFO}
+            icon="edit-solid"
+            iconSize={30}
+            title="Column Notes"
+            subtitle={`Class: ${this.props.className}`}
+            confirmText="Save"
+            onConfirm={this.handleSaveAllColumnNotes}
+            onCancel={() => this.setState({ showAllColumnNotesDialog: false })}
+          >
+            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e8e8e8' }}>
+                    <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600, width: '25%' }}>Column</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600, width: '15%' }}>Type</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600 }}>Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {this.state.order
+                    .filter(({ name }) => !['objectId', 'createdAt', 'updatedAt', 'ACL'].includes(name))
+                    .map(({ name }) => {
+                      const colInfo = this.props.columns[name];
+                      const type = colInfo ? colInfo.type : '';
+                      const targetClass = colInfo?.targetClass;
+                      const typeLabel = targetClass ? `${type}<${targetClass}>` : type;
+                      return (
+                        <tr key={name} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                          <td style={{ padding: '5px 10px', fontWeight: 500 }}>{name}</td>
+                          <td style={{ padding: '5px 10px', color: '#999', fontSize: '12px' }}>{typeLabel}</td>
+                          <td style={{ padding: '4px 10px' }}>
+                            <input
+                              type="text"
+                              placeholder="..."
+                              value={this.state.allColumnNotesEditing[name] || ''}
+                              onChange={e => {
+                                const edited = { ...this.state.allColumnNotesEditing };
+                                edited[name] = e.target.value;
+                                this.setState({ allColumnNotesEditing: edited });
+                              }}
+                              style={{
+                                width: '100%',
+                                border: '1px solid #e0e0e0',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                fontSize: '13px',
+                                outline: 'none',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </Modal>
         )}
         {this.state.showColumnNoteDialog && (
           <Modal

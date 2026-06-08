@@ -44,8 +44,9 @@ export default class ServerConfigStorage {
 
     let configObject = await query.first({ useMasterKey: true });
 
-    // If no existing object found, create a new one
-    if (!configObject) {
+    const isNew = !configObject;
+
+    if (isNew) {
       configObject = new Parse.Object(this.className);
       configObject.set('appId', appId);
       configObject.set('key', key);
@@ -62,8 +63,14 @@ export default class ServerConfigStorage {
     // Set empty ACL so object is only accessible with master key
     configObject.setACL(new Parse.ACL());
 
-    // Use master key for operations
-    return configObject.save(null, { useMasterKey: true });
+    const result = await configObject.save(null, { useMasterKey: true });
+
+    // 首次创建对象意味着表刚被自动建立，锁定 CLP 为仅 masterKey 可访问
+    if (isNew) {
+      this._lockdownCLP();
+    }
+
+    return result;
   }
 
   /**
@@ -206,5 +213,28 @@ export default class ServerConfigStorage {
       }
     }
     return null;
+  }
+
+  /**
+   * 将表的 CLP 锁定为所有操作都需要 masterKey。
+   * 异步执行，不阻塞主流程，失败仅打印警告。
+   * @private
+   */
+  _lockdownCLP() {
+    const clp = {
+      find: { requiresMasterKey: true },
+      count: { requiresMasterKey: true },
+      get: { requiresMasterKey: true },
+      create: { requiresMasterKey: true },
+      update: { requiresMasterKey: true },
+      delete: { requiresMasterKey: true },
+      addField: { requiresMasterKey: true },
+      protectedFields: {},
+    };
+
+    new Parse.Schema(this.className)
+      .setCLP(clp)
+      .update({ useMasterKey: true })
+      .catch(e => console.warn(`Failed to set CLP for ${this.className}:`, e));
   }
 }
