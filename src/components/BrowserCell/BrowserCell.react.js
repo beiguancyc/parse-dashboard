@@ -317,26 +317,27 @@ export default class BrowserCell extends Component {
     const { onEditSelectedRow, readonly } = this.props;
     const contextMenuOptions = [];
 
-    // Group 1: Navigation
-    const relatedObjectsContextMenuOption = this.getRelatedObjectsContextMenuOption();
-    relatedObjectsContextMenuOption && contextMenuOptions.push(relatedObjectsContextMenuOption);
-
-    const relatedTextFieldsContextMenuOption = this.getRelatedTextFieldsContextMenuOption();
-    !relatedObjectsContextMenuOption && relatedTextFieldsContextMenuOption && contextMenuOptions.push(relatedTextFieldsContextMenuOption);
-
-    const relatedNumberFieldsContextMenuOption = this.getRelatedNumberFieldsContextMenuOption();
-    !relatedObjectsContextMenuOption && !relatedTextFieldsContextMenuOption && relatedNumberFieldsContextMenuOption && contextMenuOptions.push(relatedNumberFieldsContextMenuOption);
-
-    // Group 2: Filter
+    // Group 1: Filter (set filter first for quick access)
     const addFilterContextMenuOption = this.getAddFilterContextMenuOption(constraints);
     const setFilterContextMenuOption = this.getSetFilterContextMenuOption(constraints);
 
-    if (addFilterContextMenuOption || setFilterContextMenuOption) {
+    setFilterContextMenuOption && contextMenuOptions.push(setFilterContextMenuOption);
+    addFilterContextMenuOption && contextMenuOptions.push(addFilterContextMenuOption);
+
+    // Group 2: Navigation
+    const relatedObjectsContextMenuOption = this.getRelatedObjectsContextMenuOption();
+    const relatedTextFieldsContextMenuOption = this.getRelatedTextFieldsContextMenuOption();
+    const relatedNumberFieldsContextMenuOption = this.getRelatedNumberFieldsContextMenuOption();
+
+    const navigationOption = relatedObjectsContextMenuOption
+      || relatedTextFieldsContextMenuOption
+      || relatedNumberFieldsContextMenuOption;
+
+    if (navigationOption) {
       if (contextMenuOptions.length > 0) {
         contextMenuOptions.push({ type: 'separator' });
       }
-      addFilterContextMenuOption && contextMenuOptions.push(addFilterContextMenuOption);
-      setFilterContextMenuOption && contextMenuOptions.push(setFilterContextMenuOption);
+      contextMenuOptions.push(navigationOption);
     }
 
     // Group 3: Row Action
