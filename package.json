@@ -1,6 +1,9 @@
 {
-  "name": "parse-dashboard",
-  "version": "9.1.1",
+  "name": "@beiguancyc/parse-dashboard",
+  "version": "9.1.1-ruixiang.1",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/parse-community/parse-dashboard"
