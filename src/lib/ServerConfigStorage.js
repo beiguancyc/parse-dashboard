@@ -14,7 +14,7 @@ import Parse from 'parse';
 export default class ServerConfigStorage {
   constructor(app) {
     this.app = app;
-    this.className = app.config?.className || 'DashboardConfig';
+    this.className = app.config?.className || 'Config_Dashboard';
 
     // Validate className is a non-empty string
     if (typeof this.className !== 'string' || !this.className.trim()) {
