@@ -2162,7 +2162,7 @@ export default class DataBrowser extends React.Component {
       this.setState({ columnNotes: notes });
       this.props.showNote?.('Column notes saved.');
     } catch (error) {
-      this.props.showNote?.('Failed to save column notes.');
+      this.props.showNote?.('Failed to save column notes.' + error);
       console.error('Failed to save column notes:', error);
     }
   }
