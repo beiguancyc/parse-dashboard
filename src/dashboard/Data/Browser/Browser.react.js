@@ -51,6 +51,7 @@ import stringCompare from 'lib/stringCompare';
 import subscribeTo from 'lib/subscribeTo';
 import { withRouter } from 'lib/withRouter';
 import FilterPreferencesManager from 'lib/FilterPreferencesManager';
+import ColumnNotesManager from 'lib/ColumnNotesManager';
 import { prefersServerStorage } from 'lib/StoragePreferences';
 import { isFormResponse, executeScriptCallback } from 'lib/ScriptUtils';
 import Parse from 'parse';
@@ -907,15 +908,19 @@ class Browser extends DashboardView {
     }
   }
 
-  newColumn(payload, required) {
+  newColumn(payload, required, note) {
     return this.props.schema
       .dispatch(ActionTypes.ADD_COLUMN, payload)
-      .then(() => {
+      .then(async () => {
         if (required) {
-          const requiredCols = [...this.state.requiredColumnFields, name];
+          const requiredCols = [...this.state.requiredColumnFields, payload.name];
           this.setState({
             requiredColumnFields: requiredCols,
           });
+        }
+        // 列备注与 schema 解耦，加列成功后再单独写入
+        if (note && note.trim()) {
+          await this.saveColumnNote(payload.name, note);
         }
       })
       .catch(err => {
@@ -923,7 +928,26 @@ class Browser extends DashboardView {
       });
   }
 
-  addColumn({ type, name, target, required, defaultValue }) {
+  async saveColumnNote(columnName, note) {
+    try {
+      const app = this.context;
+      if (!this.columnNotesManager) {
+        this.columnNotesManager = new ColumnNotesManager(app);
+      }
+      await this.columnNotesManager.setNote(
+        app.applicationId,
+        this.props.params.className,
+        columnName,
+        note
+      );
+      this.dataBrowserRef.current?.reloadColumnNotes?.();
+    } catch (error) {
+      this.showNote('Failed to update column note.', true);
+      console.error('Failed to update column note:', error);
+    }
+  }
+
+  addColumn({ type, name, target, required, defaultValue, note }) {
     const payload = {
       className: this.props.params.className,
       columnType: type,
@@ -932,12 +956,12 @@ class Browser extends DashboardView {
       required,
       defaultValue,
     };
-    this.newColumn(payload, required).finally(() => {
+    this.newColumn(payload, required, note).finally(() => {
       this.setState({ showAddColumnDialog: false, keepAddingCols: false });
     });
   }
 
-  addColumnAndContinue({ type, name, target, required, defaultValue }) {
+  addColumnAndContinue({ type, name, target, required, defaultValue, note }) {
     const payload = {
       className: this.props.params.className,
       columnType: type,
@@ -946,7 +970,7 @@ class Browser extends DashboardView {
       required,
       defaultValue,
     };
-    this.newColumn(payload, required).finally(() => {
+    this.newColumn(payload, required, note).finally(() => {
       this.setState({ showAddColumnDialog: false, keepAddingCols: false });
       this.setState({ showAddColumnDialog: true, keepAddingCols: true });
     });
@@ -1198,13 +1222,19 @@ class Browser extends DashboardView {
       className: this.props.params.className,
       name: name,
     };
-    this.props.schema.dispatch(ActionTypes.DROP_COLUMN, payload).finally(() => {
-      const state = { showRemoveColumnDialog: false };
-      if (this.state.ordering === name || this.state.ordering === '-' + name) {
-        state.ordering = '-createdAt';
-      }
-      this.setState(state);
-    });
+    this.props.schema
+      .dispatch(ActionTypes.DROP_COLUMN, payload)
+      .then(async () => {
+        // 只清被删列的备注；空字符串会删除该列 key，不影响其他列
+        await this.saveColumnNote(name, '');
+      })
+      .finally(() => {
+        const state = { showRemoveColumnDialog: false };
+        if (this.state.ordering === name || this.state.ordering === '-' + name) {
+          state.ordering = '-createdAt';
+        }
+        this.setState(state);
+      });
   }
 
   async handleFetchedSchema() {

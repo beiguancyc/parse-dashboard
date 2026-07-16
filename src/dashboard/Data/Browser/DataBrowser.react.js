@@ -2106,6 +2106,18 @@ export default class DataBrowser extends React.Component {
     this.setState({ showGraphDialog: false });
   }
 
+  async reloadColumnNotes() {
+    try {
+      const notes = await this.columnNotesManager.getNotes(
+        this.props.app.applicationId,
+        this.props.className
+      );
+      this.setState({ columnNotes: notes });
+    } catch (error) {
+      console.warn('Failed to reload column notes:', error);
+    }
+  }
+
   handleEditColumnNote(columnName, currentNote) {
     this.setState({
       showColumnNoteDialog: true,

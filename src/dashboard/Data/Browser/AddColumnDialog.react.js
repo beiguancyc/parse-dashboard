@@ -34,6 +34,7 @@ export default class AddColumnDialog extends React.Component {
       type: 'String',
       target: props.classes[0],
       name: '',
+      note: '',
       required: false,
       defaultValue: undefined,
       isDefaultValueValid: true,
@@ -284,6 +285,22 @@ export default class AddColumnDialog extends React.Component {
               placeholder="Give it a good name..."
               value={this.state.name}
               onChange={name => this.setState({ name })}
+            />
+          }
+        />
+        <Field
+          label={
+            <Label
+              text="Note"
+              description="Optional. Shown on the column header to remind you what this field is for."
+            />
+          }
+          input={
+            <TextInput
+              multiline={true}
+              placeholder="Add a note for this column..."
+              value={this.state.note}
+              onChange={note => this.setState({ note })}
             />
           }
         />
