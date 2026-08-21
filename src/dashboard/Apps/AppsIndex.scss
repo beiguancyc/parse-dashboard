@@ -194,6 +194,25 @@
   @include ellipsis();
 }
 
+.copyUrl {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin: -2px 8px 0 -4px;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: #788c97;
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 0;
+
+  &:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
 .versionWarning {
   background: rgba(255, 152, 0, 0.15);
   border-top: 1px solid rgba(255, 152, 0, 0.3);

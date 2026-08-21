@@ -6,13 +6,14 @@
  * the root directory of this source tree.
  */
 import AppsManager from 'lib/AppsManager';
+import copy from 'copy-to-clipboard';
 import FlowFooter from 'components/FlowFooter/FlowFooter.react';
 import html from 'lib/htmlString';
 import Icon from 'components/Icon/Icon.react';
 import joinWithFinal from 'lib/joinWithFinal';
 import LiveReload from 'components/LiveReload/LiveReload.react';
 import prettyNumber from 'lib/prettyNumber';
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from 'dashboard/Apps/AppsIndex.scss';
 import baseStyles from 'stylesheets/base.scss';
 import AppBadge from 'components/AppBadge/AppBadge.react';
@@ -67,16 +68,62 @@ const Metric = props => {
 
 const AppCard = ({ app, icon }) => {
   const navigate = useNavigate();
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimer.current) {
+        clearTimeout(copiedTimer.current);
+      }
+    };
+  }, []);
+
+  const handleCopyUrl = e => {
+    // 整张卡都会进 Browser，必须拦住冒泡，否则一点复制就跳走
+    e.stopPropagation();
+    if (!app.serverURL) {
+      return;
+    }
+    copy(app.serverURL);
+    setCopied(true);
+    if (copiedTimer.current) {
+      clearTimeout(copiedTimer.current);
+    }
+    copiedTimer.current = setTimeout(() => setCopied(false), 1500);
+  };
+
   const canBrowse = app.serverInfo.error ? null : () => navigate(html`/apps/${app.slug}/browser`);
-  const versionMessage = app.serverInfo.error ? (
-    <div className={styles.serverVersion}>
-      Server not reachable: <span className={styles.ago}>{app.serverInfo.error.toString()}</span>
-    </div>
-  ) : (
+  const versionMessage = (
     <div className={styles.serverVersion}>
       Server URL: <span className={styles.ago}>{app.serverURL || 'unknown'}</span>
-      Server version:{' '}
-      <span className={styles.ago}>{app.serverInfo.parseServerVersion || 'unknown'}</span>
+      {app.serverURL && (
+        <button
+          type="button"
+          className={styles.copyUrl}
+          title={copied ? 'Copied!' : 'Copy Server URL'}
+          aria-label="Copy Server URL"
+          onClick={handleCopyUrl}
+        >
+          <Icon
+            name={copied ? 'check' : 'clone-icon'}
+            width={12}
+            height={12}
+            fill={copied ? '#00db7c' : 'currentColor'}
+          />
+        </button>
+      )}
+      {app.serverInfo.error ? (
+        <>
+          Server not reachable:{' '}
+          <span className={styles.ago}>{app.serverInfo.error.toString()}</span>
+        </>
+      ) : (
+        <>
+          Server version:{' '}
+          <span className={styles.ago}>{app.serverInfo.parseServerVersion || 'unknown'}</span>
+        </>
+      )}
     </div>
   );
 
