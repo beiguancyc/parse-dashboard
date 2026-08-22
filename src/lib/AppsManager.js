@@ -6,7 +6,7 @@
  * the root directory of this source tree.
  */
 import ParseApp from 'lib/ParseApp';
-import { post, del } from 'lib/AJAX';
+import { get, post, del } from 'lib/AJAX';
 
 const appsStore = [];
 
@@ -55,6 +55,25 @@ const AppsManager = {
         }
       }
     });
+  },
+
+  // 读取各 app serverURL 当前 HTTPS 证书起止时间
+  getAllAppsSslCerts() {
+    return Promise.all(
+      this.apps().map(app => {
+        if (!app.serverURL || !app.serverURL.startsWith('https://')) {
+          app.sslCert = { https: false };
+          return;
+        }
+        return get('/apps/' + encodeURIComponent(app.slug) + '/ssl-cert')
+          .then(info => {
+            app.sslCert = info;
+          })
+          .catch(() => {
+            app.sslCert = { https: true, error: 'unavailable' };
+          });
+      })
+    );
   },
 
   // Fetch the latest usage and request info for the apps index

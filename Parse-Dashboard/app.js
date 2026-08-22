@@ -7,6 +7,7 @@ const fs = require('fs');
 const ConfigKeyCache = require('./configKeyCache.js');
 const currentVersionFeatures = require('../package.json').parseDashboardFeatures;
 const Parse = require('parse/node');
+const { getSslCertInfo } = require('./sslCertInfo');
 
 let newFeaturesInLatestVersion = [];
 
@@ -348,6 +349,42 @@ module.exports = function(config, options) {
         res.status(500).json({ error: `Error: ${errorMessage}` });
       }
     }
+
+    /**
+     * 读取某个已配置 app 的 serverURL 当前 TLS 证书起止时间。
+     * URL 只来自 dashboard 配置，不接受客户端传入，避免 SSRF。
+     */
+    app.get('/apps/:appId/ssl-cert',
+      enforceRemoteAccessRestrictions,
+      (req, res, next) => {
+        if (users && (!req.user || !req.user.isAuthenticated)) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+        next();
+      },
+      async (req, res) => {
+        try {
+          const { appId } = req.params;
+          const appConfig = config.apps.find(a => (a.appNameForURL || a.appName) === appId);
+          if (!appConfig) {
+            return res.status(404).json({ error: `App "${appId}" not found` });
+          }
+
+          const appsUserHasAccess = req.user && req.user.appsUserHasAccessTo;
+          if (appsUserHasAccess) {
+            const matchingAccess = appsUserHasAccess.find(access => access.appId === appConfig.appId);
+            if (!matchingAccess) {
+              return res.status(403).json({ error: 'Forbidden: you do not have access to this app' });
+            }
+          }
+
+          const info = await getSslCertInfo(appConfig.serverURL);
+          return res.json(info);
+        } catch (error) {
+          return res.status(500).json({ error: error.message || 'Failed to read SSL certificate' });
+        }
+      }
+    );
 
     // Agent API endpoint — middleware chain: remote access guard → auth check (401) → CSRF validation (403) → handler
     app.post('/apps/:appId/agent',

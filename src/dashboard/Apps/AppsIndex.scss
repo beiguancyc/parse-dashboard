@@ -163,6 +163,26 @@
   padding-right: 10px;
 }
 
+.metaLabel {
+  display: inline-block;
+  width: 10ch;
+  text-align: right;
+}
+
+.sslCert {
+  margin-top: 2px;
+}
+
+.sslCertExpiring {
+  color: #ff9800;
+  padding-right: 10px;
+}
+
+.sslCertExpired {
+  color: #ff5b5b;
+  padding-right: 10px;
+}
+
 .glance {
   flex: 0 0 auto;
   padding: 10px 12px;

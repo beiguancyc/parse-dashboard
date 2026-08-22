@@ -20,6 +20,32 @@ import AppBadge from 'components/AppBadge/AppBadge.react';
 import { withRouter } from 'lib/withRouter';
 import { useNavigate } from 'react-router-dom';
 
+const SSL_WARN_DAYS = 30;
+
+function formatCertDate(iso) {
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) {
+    return '-';
+  }
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function getSslCertStatus(sslCert) {
+  if (!sslCert || sslCert.https === false || sslCert.error || !sslCert.validTo) {
+    return null;
+  }
+  const daysLeft = Math.ceil((new Date(sslCert.validTo).getTime() - Date.now()) / 86400000);
+  if (daysLeft < 0) {
+    return 'expired';
+  }
+  if (daysLeft <= SSL_WARN_DAYS) {
+    return 'expiring';
+  }
+  return 'ok';
+}
+
 function dash(value, content) {
   if (value === undefined) {
     return '-';
@@ -94,9 +120,28 @@ const AppCard = ({ app, icon }) => {
   };
 
   const canBrowse = app.serverInfo.error ? null : () => navigate(html`/apps/${app.slug}/browser`);
+  const sslStatus = getSslCertStatus(app.sslCert);
+  let sslCertLine = null;
+  if (sslStatus) {
+    const statusClass =
+      sslStatus === 'expired'
+        ? styles.sslCertExpired
+        : sslStatus === 'expiring'
+          ? styles.sslCertExpiring
+          : styles.ago;
+    sslCertLine = (
+      <div className={styles.sslCert}>
+        <span className={styles.metaLabel}>HTTPS</span>:{' '}
+        <span className={statusClass}>
+          {formatCertDate(app.sslCert.validFrom)} ~ {formatCertDate(app.sslCert.validTo)}
+        </span>
+      </div>
+    );
+  }
   const versionMessage = (
     <div className={styles.serverVersion}>
-      Server URL: <span className={styles.ago}>{app.serverURL || 'unknown'}</span>
+      <span className={styles.metaLabel}>Server URL</span>:{' '}
+      <span className={styles.ago}>{app.serverURL || 'unknown'}</span>
       {app.serverURL && (
         <button
           type="button"
@@ -140,6 +185,7 @@ const AppCard = ({ app, icon }) => {
         <div className={styles.details}>
           <a className={styles.appname}>{app.name}</a>
           {versionMessage}
+          {sslCertLine}
         </div>
         <CountsSection className={styles.glance} title="At a glance">
           <AppBadge production={app.production} />
@@ -171,6 +217,9 @@ class AppsIndex extends React.Component {
   componentWillMount() {
     document.body.addEventListener('keydown', this.focusField);
     AppsManager.getAllAppsIndexStats().then(() => {
+      this.forceUpdate();
+    });
+    AppsManager.getAllAppsSslCerts().then(() => {
       this.forceUpdate();
     });
   }
