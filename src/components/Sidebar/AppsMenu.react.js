@@ -17,6 +17,7 @@ const AppsMenu = ({ apps, current, height, onSelect, onPinClick }) => (
   <div style={{ height }} className={[styles.appsMenu, baseStyles.unselectable].join(' ')}>
     <AppName
       name={current.name}
+      sslCert={current.sslCert}
       onClick={onSelect.bind(null, current.slug)}
       onPinClick={onPinClick}
     />

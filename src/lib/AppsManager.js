@@ -57,23 +57,43 @@ const AppsManager = {
     });
   },
 
+  // 读取单个 app 的 HTTPS 证书，已有缓存则直接返回
+  ensureSslCert(app) {
+    if (!app) {
+      return Promise.resolve(null);
+    }
+    if (app.sslCert) {
+      return Promise.resolve(app.sslCert);
+    }
+    if (!app.serverURL || !app.serverURL.startsWith('https://')) {
+      app.sslCert = { https: false };
+      return Promise.resolve(app.sslCert);
+    }
+    if (!this._sslCertPending) {
+      this._sslCertPending = {};
+    }
+    const key = app.slug;
+    if (this._sslCertPending[key]) {
+      return this._sslCertPending[key];
+    }
+    this._sslCertPending[key] = get('/apps/' + encodeURIComponent(app.slug) + '/ssl-cert')
+      .then(info => {
+        app.sslCert = info;
+        return info;
+      })
+      .catch(() => {
+        app.sslCert = { https: true, error: 'unavailable' };
+        return app.sslCert;
+      })
+      .finally(() => {
+        delete this._sslCertPending[key];
+      });
+    return this._sslCertPending[key];
+  },
+
   // 读取各 app serverURL 当前 HTTPS 证书起止时间
   getAllAppsSslCerts() {
-    return Promise.all(
-      this.apps().map(app => {
-        if (!app.serverURL || !app.serverURL.startsWith('https://')) {
-          app.sslCert = { https: false };
-          return;
-        }
-        return get('/apps/' + encodeURIComponent(app.slug) + '/ssl-cert')
-          .then(info => {
-            app.sslCert = info;
-          })
-          .catch(() => {
-            app.sslCert = { https: true, error: 'unavailable' };
-          });
-      })
-    );
+    return Promise.all(this.apps().map(app => this.ensureSslCert(app)));
   },
 
   // Fetch the latest usage and request info for the apps index

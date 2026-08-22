@@ -37,6 +37,7 @@ const Sidebar = ({
   const [collapsed, setCollapsed] = useState(false);
   const [fixed, setFixed] = useState(true);
   const [dashboardUser, setDashboardUser] = useState('');
+  const [sslCert, setSslCert] = useState(currentApp?.sslCert || null);
   fetch(mountPath).then(response => {
     setDashboardUser(response.headers.get('username'));
   });
@@ -65,6 +66,23 @@ const Sidebar = ({
       window.removeEventListener('resize', windowResizeHandler);
     };
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!currentApp) {
+      setSslCert(null);
+      return;
+    }
+    setSslCert(currentApp.sslCert || null);
+    AppsManager.ensureSslCert(currentApp).then(info => {
+      if (!cancelled) {
+        setSslCert(info);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentApp, currentApp?.slug]);
 
   const sidebarClasses = [styles.sidebar];
   if (fixed) {
@@ -134,6 +152,7 @@ const Sidebar = ({
         <div className={styles.apps}>
           <AppName
             name={currentApp.name}
+            sslCert={sslCert}
             onClick={() => setAppsMenuOpen(true)}
             onPinClick={onPinClick}
           />
