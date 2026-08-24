@@ -18,6 +18,9 @@ const AppsMenu = ({ apps, current, height, onSelect, onPinClick }) => (
     <AppName
       name={current.name}
       sslCert={current.sslCert}
+      serverURL={current.serverURL}
+      parseServerVersion={current.serverInfo?.parseServerVersion}
+      serverError={current.serverInfo?.error}
       onClick={onSelect.bind(null, current.slug)}
       onPinClick={onPinClick}
     />

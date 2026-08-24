@@ -173,6 +173,54 @@ $footerHeight: 36px;
   text-overflow: ellipsis;
 }
 
+.serverUrlLine {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  margin-top: 2px;
+  color: #8fb9cf;
+}
+
+.serverUrlText {
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+  color: #c5dce8;
+}
+
+.copyUrl {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 1px;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: #8fb9cf;
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 0;
+
+  &:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.serverVersionLine {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  margin-top: 2px;
+  color: #8fb9cf;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sslCertOk {
   color: #8fb9cf;
 }
@@ -193,9 +241,15 @@ $footerHeight: 36px;
 }
 
 .appsMenu {
-  overflow: auto;
+  overflow: hidden;
   background: #094162;
   width: 300px;
+  position: absolute;
+  top: $headerHeight;
+  bottom: $footerHeight;
+  left: 0;
+  display: flex;
+  flex-direction: column;
 
   .menuRow:hover {
     background: #0c5582;
@@ -217,7 +271,8 @@ $footerHeight: 36px;
 
   .appListContainer {
     overflow-y: auto;
-    height: calc(100vh - #{$headerHeight} - #{$menuSectionHeight} - #{$sidebarMenuItemHeight} - #{$footerHeight});
+    flex: 1;
+    min-height: 0;
   }
 }
 

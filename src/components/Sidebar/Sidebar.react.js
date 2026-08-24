@@ -153,6 +153,9 @@ const Sidebar = ({
           <AppName
             name={currentApp.name}
             sslCert={sslCert}
+            serverURL={currentApp.serverURL}
+            parseServerVersion={currentApp.serverInfo?.parseServerVersion}
+            serverError={currentApp.serverInfo?.error}
             onClick={() => setAppsMenuOpen(true)}
             onPinClick={onPinClick}
           />
