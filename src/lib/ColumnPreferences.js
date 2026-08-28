@@ -9,7 +9,23 @@ const VERSION = 'v1'; // In case we ever need to invalidate these
 const DEFAULT_WIDTH = 150;
 const COLUMN_SORT = '__columnClassesSort'; // Used for storing classes sort field
 const DEFAULT_COLUMN_SORT = '-createdAt'; // Default column sorting
+const DEFAULT_COLUMN_ORDER = ['objectId', 'createdAt', 'updatedAt', 'ACL'];
 const cache = {};
+
+// System columns first, remaining columns alphabetical — same as Manage Columns → Auto-sort
+export function autoSortColumns(columns) {
+  const defaults = [];
+  const other = [];
+  for (const column of columns) {
+    const index = DEFAULT_COLUMN_ORDER.indexOf(column.name);
+    if (index !== -1) {
+      defaults[index] = column;
+    } else {
+      other.push(column);
+    }
+  }
+  return [...defaults.filter(column => column), ...other.sort((a, b) => a.name.localeCompare(b.name))];
+}
 
 export function updatePreferences(prefs, appId, className) {
   try {
@@ -91,7 +107,8 @@ export function getColumnSort(sortBy, appId, className) {
 }
 
 export function getOrder(cols, appId, className, defaultPrefs) {
-  let prefs = getPreferences(appId, className) || [
+  const savedPrefs = getPreferences(appId, className);
+  let prefs = savedPrefs || [
     { name: 'objectId', width: DEFAULT_WIDTH, visible: true, cached: true },
   ];
 
@@ -139,7 +156,7 @@ export function getOrder(cols, appId, className, defaultPrefs) {
       updated = true;
     }
   }
-  const filtered = [];
+  let filtered = [];
   for (let i = 0; i < order.length; i++) {
     const { name, visible, required, cached } = order[i];
 
@@ -167,6 +184,12 @@ export function getOrder(cols, appId, className, defaultPrefs) {
     } else {
       updated = true;
     }
+  }
+  // First visit with no saved order and no dashboard config: apply Auto-sort.
+  // Later visits keep the saved order; newly added fields still append at the end.
+  if (!savedPrefs && !(defaultPrefs && defaultPrefs.length)) {
+    filtered = autoSortColumns(filtered);
+    updated = true;
   }
   if (updated) {
     updatePreferences(filtered, appId, className);

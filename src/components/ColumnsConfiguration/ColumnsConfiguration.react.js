@@ -8,6 +8,7 @@ import styles from 'components/ColumnsConfiguration/ColumnsConfiguration.scss';
 import Icon from 'components/Icon/Icon.react';
 import Popover from 'components/Popover/Popover.react';
 import Position from 'lib/Position';
+import { autoSortColumns } from 'lib/ColumnPreferences';
 
 const POPOVER_CONTENT_ID = 'columnsConfigurationPopover';
 
@@ -52,23 +53,7 @@ export default class ColumnsConfiguration extends React.Component {
   }
 
   autoSort() {
-    const defaultOrder = ['objectId', 'createdAt', 'updatedAt', 'ACL'];
-    const order = {
-      default: [],
-      other: [],
-    };
-    for (const column of this.props.order) {
-      const index = defaultOrder.indexOf(column.name);
-      if (index !== -1) {
-        order.default[index] = column;
-      } else {
-        order.other.push(column);
-      }
-    }
-    this.props.handleColumnsOrder([
-      ...order.default.filter(column => column),
-      ...order.other.sort((a, b) => a.name.localeCompare(b.name)),
-    ]);
+    this.props.handleColumnsOrder(autoSortColumns(this.props.order));
   }
 
   render() {

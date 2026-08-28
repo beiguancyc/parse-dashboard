@@ -288,4 +288,60 @@ describe('ColumnPreferences', () => {
       },
     ]);
   });
+
+  it('auto-sorts columns on first visit', () => {
+    const order = ColumnPreferences.getOrder(
+      {
+        zebra: {},
+        objectId: {},
+        name: {},
+        createdAt: {},
+        ACL: {},
+        updatedAt: {},
+        apple: {},
+      },
+      'testapp',
+      'AutoSortKlass'
+    );
+    expect(order.map(column => column.name)).toEqual([
+      'objectId',
+      'createdAt',
+      'updatedAt',
+      'ACL',
+      'apple',
+      'name',
+      'zebra',
+    ]);
+  });
+
+  it('keeps saved order instead of auto-sorting', () => {
+    ColumnPreferences.updatePreferences(
+      [
+        { name: 'zebra', width: 150, visible: true, cached: true },
+        { name: 'objectId', width: 150, visible: true, cached: true },
+        { name: 'apple', width: 150, visible: true, cached: true },
+      ],
+      'testapp',
+      'SavedOrderKlass'
+    );
+    const order = ColumnPreferences.getOrder(
+      { zebra: {}, objectId: {}, apple: {}, createdAt: {} },
+      'testapp',
+      'SavedOrderKlass'
+    );
+    expect(order.map(column => column.name)).toEqual(['zebra', 'objectId', 'apple', 'createdAt']);
+  });
+
+  it('does not auto-sort when dashboard columnPreference exists', () => {
+    const order = ColumnPreferences.getOrder(
+      { zebra: {}, objectId: {}, apple: {} },
+      'testapp',
+      'ConfigOrderKlass',
+      [
+        { name: 'zebra', width: 120, visible: true },
+        { name: 'apple', width: 120, visible: true },
+      ]
+    );
+    expect(order.map(column => column.name)).toEqual(['objectId', 'zebra', 'apple']);
+  });
 });

@@ -107,7 +107,7 @@ export default class DataBrowser extends React.Component {
       columnPreferences[props.className]
     );
     const storedRowNumber =
-      window.localStorage?.getItem(BROWSER_SHOW_ROW_NUMBER) === 'true';
+      window.localStorage?.getItem(BROWSER_SHOW_ROW_NUMBER) !== 'false';
     const storedPanelVisible =
       window.localStorage?.getItem(AGGREGATION_PANEL_VISIBLE) === 'true';
     const storedScrollToTop =
